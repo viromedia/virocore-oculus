@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://github.com/dthian/virocore-oculus/blob/master/logo.png">
+<img src="https://github.com/dthian/virocore-oculus/blob/master/Logo.png">
 </p>
 
 ViroCore Oculus
