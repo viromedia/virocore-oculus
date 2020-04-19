@@ -36,11 +36,19 @@
 #include <android/log.h>
 #include <android/native_window_jni.h> // for native window JNI
 #include <android/input.h>
-
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
+
+#include "VROPlatformUtil.h"
+#include "VRODriverOpenGLAndroidOVR.h"
+#include "VROAllocationTracker.h"
+#include "VROInputControllerOVR.h"
+#include <VROTime.h>
+
+#pragma mark - OVR System
+
 
 #if !defined(EGL_OPENGL_ES3_BIT_KHR)
 #define EGL_OPENGL_ES3_BIT_KHR 0x0040
@@ -114,7 +122,25 @@ static const int CPU_LEVEL = 2;
 static const int GPU_LEVEL = 3;
 static const int NUM_MULTI_SAMPLES = 4;
 
-#define MULTI_THREADED 0
+/*
+================================================================================
+
+OVR to VRO Utility Functions
+
+================================================================================
+*/
+
+static VROMatrix4f toMatrix4f(ovrMatrix4f in)
+{
+    float m[16] = {
+            in.M[0][0], in.M[1][0], in.M[2][0], in.M[3][0],
+            in.M[0][1], in.M[1][1], in.M[2][1], in.M[3][1],
+            in.M[0][2], in.M[1][2], in.M[2][2], in.M[3][2],
+            in.M[0][3], in.M[1][3], in.M[2][3], in.M[3][3],
+    };
+
+    return VROMatrix4f(m);
+}
 
 /*
 ================================================================================
@@ -298,21 +324,16 @@ static void ovrEgl_CreateContext(ovrEgl* egl, const ovrEgl* shareEgl) {
         ALOGE("        eglGetConfigs() failed: %s", EglErrorString(eglGetError()));
         return;
     }
-    const EGLint configAttribs[] = {EGL_RED_SIZE,
-                                    8,
-                                    EGL_GREEN_SIZE,
-                                    8,
-                                    EGL_BLUE_SIZE,
-                                    8,
-                                    EGL_ALPHA_SIZE,
-                                    8, // need alpha for the multi-pass timewarp compositor
-                                    EGL_DEPTH_SIZE,
-                                    0,
-                                    EGL_STENCIL_SIZE,
-                                    0,
-                                    EGL_SAMPLES,
-                                    0,
-                                    EGL_NONE};
+    const EGLint configAttribs[] = {
+            EGL_RED_SIZE, 8,
+            EGL_GREEN_SIZE, 8,
+            EGL_BLUE_SIZE, 8,
+            EGL_ALPHA_SIZE, 8, // need alpha for the multi-pass timewarp compositor
+            EGL_DEPTH_SIZE, 0,
+            EGL_STENCIL_SIZE, 0,
+            EGL_SAMPLES, 0,
+            EGL_NONE
+    };
     egl->Config = 0;
     for (int i = 0; i < numConfigs; i++) {
         EGLint value = 0;
@@ -410,370 +431,12 @@ static void ovrEgl_DestroyContext(ovrEgl* egl) {
 /*
 ================================================================================
 
-ovrGeometry
-
-================================================================================
-*/
-
-typedef struct {
-    GLint Index;
-    GLint Size;
-    GLenum Type;
-    GLboolean Normalized;
-    GLsizei Stride;
-    const GLvoid* Pointer;
-} ovrVertexAttribPointer;
-
-#define MAX_VERTEX_ATTRIB_POINTERS 3
-
-typedef struct {
-    GLuint VertexBuffer;
-    GLuint IndexBuffer;
-    GLuint VertexArrayObject;
-    int VertexCount;
-    int IndexCount;
-    ovrVertexAttribPointer VertexAttribs[MAX_VERTEX_ATTRIB_POINTERS];
-} ovrGeometry;
-
-enum VertexAttributeLocation {
-    VERTEX_ATTRIBUTE_LOCATION_POSITION,
-    VERTEX_ATTRIBUTE_LOCATION_COLOR,
-    VERTEX_ATTRIBUTE_LOCATION_UV,
-    VERTEX_ATTRIBUTE_LOCATION_TRANSFORM
-};
-
-typedef struct {
-    enum VertexAttributeLocation location;
-    const char* name;
-} ovrVertexAttribute;
-
-static ovrVertexAttribute ProgramVertexAttributes[] = {
-        {VERTEX_ATTRIBUTE_LOCATION_POSITION, "vertexPosition"},
-        {VERTEX_ATTRIBUTE_LOCATION_COLOR, "vertexColor"},
-        {VERTEX_ATTRIBUTE_LOCATION_UV, "vertexUv"},
-        {VERTEX_ATTRIBUTE_LOCATION_TRANSFORM, "vertexTransform"}};
-
-static void ovrGeometry_Clear(ovrGeometry* geometry) {
-    geometry->VertexBuffer = 0;
-    geometry->IndexBuffer = 0;
-    geometry->VertexArrayObject = 0;
-    geometry->VertexCount = 0;
-    geometry->IndexCount = 0;
-    for (int i = 0; i < MAX_VERTEX_ATTRIB_POINTERS; i++) {
-        memset(&geometry->VertexAttribs[i], 0, sizeof(geometry->VertexAttribs[i]));
-        geometry->VertexAttribs[i].Index = -1;
-    }
-}
-
-static void ovrGeometry_CreateCube(ovrGeometry* geometry) {
-    typedef struct {
-        char positions[8][4];
-        unsigned char colors[8][4];
-    } ovrCubeVertices;
-
-    static const ovrCubeVertices cubeVertices = {
-            // positions
-            {
-                    {-127, +127, -127, +127},
-                    {+127, +127, -127, +127},
-                    {+127, +127, +127, +127},
-                    {-127, +127, +127, +127}, // top
-                    {-127, -127, -127, +127},
-                    {-127, -127, +127, +127},
-                    {+127, -127, +127, +127},
-                    {+127, -127, -127, +127} // bottom
-            },
-            // colors
-            {{255, 0, 255, 255},
-                    {0, 255, 0, 255},
-                    {0, 0, 255, 255},
-                    {255, 0, 0, 255},
-                    {0, 0, 255, 255},
-                    {0, 255, 0, 255},
-                    {255, 0, 255, 255},
-                    {255, 0, 0, 255}},
-    };
-
-    static const unsigned short cubeIndices[36] = {
-            0, 2, 1, 2, 0, 3, // top
-            4, 6, 5, 6, 4, 7, // bottom
-            2, 6, 7, 7, 1, 2, // right
-            0, 4, 5, 5, 3, 0, // left
-            3, 5, 6, 6, 2, 3, // front
-            0, 1, 7, 7, 4, 0 // back
-    };
-
-    geometry->VertexCount = 8;
-    geometry->IndexCount = 36;
-
-    geometry->VertexAttribs[0].Index = VERTEX_ATTRIBUTE_LOCATION_POSITION;
-    geometry->VertexAttribs[0].Size = 4;
-    geometry->VertexAttribs[0].Type = GL_BYTE;
-    geometry->VertexAttribs[0].Normalized = true;
-    geometry->VertexAttribs[0].Stride = sizeof(cubeVertices.positions[0]);
-    geometry->VertexAttribs[0].Pointer = (const GLvoid*)offsetof(ovrCubeVertices, positions);
-
-    geometry->VertexAttribs[1].Index = VERTEX_ATTRIBUTE_LOCATION_COLOR;
-    geometry->VertexAttribs[1].Size = 4;
-    geometry->VertexAttribs[1].Type = GL_UNSIGNED_BYTE;
-    geometry->VertexAttribs[1].Normalized = true;
-    geometry->VertexAttribs[1].Stride = sizeof(cubeVertices.colors[0]);
-    geometry->VertexAttribs[1].Pointer = (const GLvoid*)offsetof(ovrCubeVertices, colors);
-
-    GL(glGenBuffers(1, &geometry->VertexBuffer));
-    GL(glBindBuffer(GL_ARRAY_BUFFER, geometry->VertexBuffer));
-    GL(glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW));
-    GL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-    GL(glGenBuffers(1, &geometry->IndexBuffer));
-    GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry->IndexBuffer));
-    GL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices), cubeIndices, GL_STATIC_DRAW));
-    GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-}
-
-static void ovrGeometry_Destroy(ovrGeometry* geometry) {
-    GL(glDeleteBuffers(1, &geometry->IndexBuffer));
-    GL(glDeleteBuffers(1, &geometry->VertexBuffer));
-
-    ovrGeometry_Clear(geometry);
-}
-
-static void ovrGeometry_CreateVAO(ovrGeometry* geometry) {
-    GL(glGenVertexArrays(1, &geometry->VertexArrayObject));
-    GL(glBindVertexArray(geometry->VertexArrayObject));
-
-    GL(glBindBuffer(GL_ARRAY_BUFFER, geometry->VertexBuffer));
-
-    for (int i = 0; i < MAX_VERTEX_ATTRIB_POINTERS; i++) {
-        if (geometry->VertexAttribs[i].Index != -1) {
-            GL(glEnableVertexAttribArray(geometry->VertexAttribs[i].Index));
-            GL(glVertexAttribPointer(
-                    geometry->VertexAttribs[i].Index,
-                    geometry->VertexAttribs[i].Size,
-                    geometry->VertexAttribs[i].Type,
-                    geometry->VertexAttribs[i].Normalized,
-                    geometry->VertexAttribs[i].Stride,
-                    geometry->VertexAttribs[i].Pointer));
-        }
-    }
-
-    GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry->IndexBuffer));
-
-    GL(glBindVertexArray(0));
-}
-
-static void ovrGeometry_DestroyVAO(ovrGeometry* geometry) {
-    GL(glDeleteVertexArrays(1, &geometry->VertexArrayObject));
-}
-
-/*
-================================================================================
-
-ovrProgram
-
-================================================================================
-*/
-
-#define MAX_PROGRAM_UNIFORMS 8
-#define MAX_PROGRAM_TEXTURES 8
-
-typedef struct {
-    GLuint Program;
-    GLuint VertexShader;
-    GLuint FragmentShader;
-    // These will be -1 if not used by the program.
-    GLint UniformLocation[MAX_PROGRAM_UNIFORMS]; // ProgramUniforms[].name
-    GLint UniformBinding[MAX_PROGRAM_UNIFORMS]; // ProgramUniforms[].name
-    GLint Textures[MAX_PROGRAM_TEXTURES]; // Texture%i
-} ovrProgram;
-
-typedef struct {
-    enum {
-        UNIFORM_MODEL_MATRIX,
-        UNIFORM_VIEW_ID,
-        UNIFORM_SCENE_MATRICES,
-    } index;
-    enum {
-        UNIFORM_TYPE_VECTOR4,
-        UNIFORM_TYPE_MATRIX4X4,
-        UNIFORM_TYPE_INT,
-        UNIFORM_TYPE_BUFFER,
-    } type;
-    const char* name;
-} ovrUniform;
-
-static ovrUniform ProgramUniforms[] = {
-        {UNIFORM_MODEL_MATRIX, UNIFORM_TYPE_MATRIX4X4, "ModelMatrix"},
-        {UNIFORM_VIEW_ID, UNIFORM_TYPE_INT, "ViewID"},
-        {UNIFORM_SCENE_MATRICES, UNIFORM_TYPE_BUFFER, "SceneMatrices"},
-};
-
-static void ovrProgram_Clear(ovrProgram* program) {
-    program->Program = 0;
-    program->VertexShader = 0;
-    program->FragmentShader = 0;
-    memset(program->UniformLocation, 0, sizeof(program->UniformLocation));
-    memset(program->UniformBinding, 0, sizeof(program->UniformBinding));
-    memset(program->Textures, 0, sizeof(program->Textures));
-}
-
-static const char* programVersion = "#version 300 es\n";
-
-static bool ovrProgram_Create(
-        ovrProgram* program,
-        const char* vertexSource,
-        const char* fragmentSource,
-        const bool useMultiview) {
-    GLint r;
-
-    GL(program->VertexShader = glCreateShader(GL_VERTEX_SHADER));
-
-    const char* vertexSources[3] = {
-            programVersion,
-            (useMultiview) ? "#define DISABLE_MULTIVIEW 0\n" : "#define DISABLE_MULTIVIEW 1\n",
-            vertexSource};
-    GL(glShaderSource(program->VertexShader, 3, vertexSources, 0));
-    GL(glCompileShader(program->VertexShader));
-    GL(glGetShaderiv(program->VertexShader, GL_COMPILE_STATUS, &r));
-    if (r == GL_FALSE) {
-        GLchar msg[4096];
-        GL(glGetShaderInfoLog(program->VertexShader, sizeof(msg), 0, msg));
-        ALOGE("%s\n%s\n", vertexSource, msg);
-        return false;
-    }
-
-    const char* fragmentSources[2] = {programVersion, fragmentSource};
-    GL(program->FragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-    GL(glShaderSource(program->FragmentShader, 2, fragmentSources, 0));
-    GL(glCompileShader(program->FragmentShader));
-    GL(glGetShaderiv(program->FragmentShader, GL_COMPILE_STATUS, &r));
-    if (r == GL_FALSE) {
-        GLchar msg[4096];
-        GL(glGetShaderInfoLog(program->FragmentShader, sizeof(msg), 0, msg));
-        ALOGE("%s\n%s\n", fragmentSource, msg);
-        return false;
-    }
-
-    GL(program->Program = glCreateProgram());
-    GL(glAttachShader(program->Program, program->VertexShader));
-    GL(glAttachShader(program->Program, program->FragmentShader));
-
-    // Bind the vertex attribute locations.
-    for (int i = 0; i < (int)(sizeof(ProgramVertexAttributes) / sizeof(ProgramVertexAttributes[0]));
-         i++) {
-        GL(glBindAttribLocation(
-                program->Program,
-                ProgramVertexAttributes[i].location,
-                ProgramVertexAttributes[i].name));
-    }
-
-    GL(glLinkProgram(program->Program));
-    GL(glGetProgramiv(program->Program, GL_LINK_STATUS, &r));
-    if (r == GL_FALSE) {
-        GLchar msg[4096];
-        GL(glGetProgramInfoLog(program->Program, sizeof(msg), 0, msg));
-        ALOGE("Linking program failed: %s\n", msg);
-        return false;
-    }
-
-    int numBufferBindings = 0;
-
-    // Get the uniform locations.
-    memset(program->UniformLocation, -1, sizeof(program->UniformLocation));
-    for (int i = 0; i < (int)(sizeof(ProgramUniforms) / sizeof(ProgramUniforms[0])); i++) {
-        const int uniformIndex = ProgramUniforms[i].index;
-        if (ProgramUniforms[i].type == UNIFORM_TYPE_BUFFER) {
-            GL(program->UniformLocation[uniformIndex] =
-                       glGetUniformBlockIndex(program->Program, ProgramUniforms[i].name));
-            program->UniformBinding[uniformIndex] = numBufferBindings++;
-            GL(glUniformBlockBinding(
-                    program->Program,
-                    program->UniformLocation[uniformIndex],
-                    program->UniformBinding[uniformIndex]));
-        } else {
-            GL(program->UniformLocation[uniformIndex] =
-                       glGetUniformLocation(program->Program, ProgramUniforms[i].name));
-            program->UniformBinding[uniformIndex] = program->UniformLocation[uniformIndex];
-        }
-    }
-
-    GL(glUseProgram(program->Program));
-
-    // Get the texture locations.
-    for (int i = 0; i < MAX_PROGRAM_TEXTURES; i++) {
-        char name[32];
-        sprintf(name, "Texture%i", i);
-        program->Textures[i] = glGetUniformLocation(program->Program, name);
-        if (program->Textures[i] != -1) {
-            GL(glUniform1i(program->Textures[i], i));
-        }
-    }
-
-    GL(glUseProgram(0));
-
-    return true;
-}
-
-static void ovrProgram_Destroy(ovrProgram* program) {
-    if (program->Program != 0) {
-        GL(glDeleteProgram(program->Program));
-        program->Program = 0;
-    }
-    if (program->VertexShader != 0) {
-        GL(glDeleteShader(program->VertexShader));
-        program->VertexShader = 0;
-    }
-    if (program->FragmentShader != 0) {
-        GL(glDeleteShader(program->FragmentShader));
-        program->FragmentShader = 0;
-    }
-}
-
-static const char VERTEX_SHADER[] =
-        "#ifndef DISABLE_MULTIVIEW\n"
-        "	#define DISABLE_MULTIVIEW 0\n"
-        "#endif\n"
-        "#define NUM_VIEWS 2\n"
-        "#if defined( GL_OVR_multiview2 ) && ! DISABLE_MULTIVIEW\n"
-        "	#extension GL_OVR_multiview2 : enable\n"
-        "	layout(num_views=NUM_VIEWS) in;\n"
-        "	#define VIEW_ID gl_ViewID_OVR\n"
-        "#else\n"
-        "	uniform lowp int ViewID;\n"
-        "	#define VIEW_ID ViewID\n"
-        "#endif\n"
-        "in vec3 vertexPosition;\n"
-        "in vec4 vertexColor;\n"
-        "in mat4 vertexTransform;\n"
-        "uniform SceneMatrices\n"
-        "{\n"
-        "	uniform mat4 ViewMatrix[NUM_VIEWS];\n"
-        "	uniform mat4 ProjectionMatrix[NUM_VIEWS];\n"
-        "} sm;\n"
-        "out vec4 fragmentColor;\n"
-        "void main()\n"
-        "{\n"
-        "	gl_Position = sm.ProjectionMatrix[VIEW_ID] * ( sm.ViewMatrix[VIEW_ID] * ( vertexTransform * vec4( vertexPosition * 0.1, 1.0 ) ) );\n"
-        "	fragmentColor = vertexColor;\n"
-        "}\n";
-
-static const char FRAGMENT_SHADER[] =
-        "in lowp vec4 fragmentColor;\n"
-        "out lowp vec4 outColor;\n"
-        "void main()\n"
-        "{\n"
-        "	outColor = fragmentColor;\n"
-        "}\n";
-
-/*
-================================================================================
-
 ovrFramebuffer
 
 ================================================================================
 */
 
-typedef struct {
+struct ovrFramebuffer{
     int Width;
     int Height;
     int Multisamples;
@@ -783,7 +446,7 @@ typedef struct {
     ovrTextureSwapChain* ColorTextureSwapChain;
     GLuint* DepthBuffers;
     GLuint* FrameBuffers;
-} ovrFramebuffer;
+};
 
 static void ovrFramebuffer_Clear(ovrFramebuffer* frameBuffer) {
     frameBuffer->Width = 0;
@@ -831,19 +494,15 @@ static bool ovrFramebuffer_Create(
             height,
             1,
             3);
-    frameBuffer->TextureSwapChainLength =
-            vrapi_GetTextureSwapChainLength(frameBuffer->ColorTextureSwapChain);
-    frameBuffer->DepthBuffers =
-            (GLuint*)malloc(frameBuffer->TextureSwapChainLength * sizeof(GLuint));
-    frameBuffer->FrameBuffers =
-            (GLuint*)malloc(frameBuffer->TextureSwapChainLength * sizeof(GLuint));
+    frameBuffer->TextureSwapChainLength = vrapi_GetTextureSwapChainLength(frameBuffer->ColorTextureSwapChain);
+    frameBuffer->DepthBuffers = (GLuint*)malloc(frameBuffer->TextureSwapChainLength * sizeof(GLuint));
+    frameBuffer->FrameBuffers = (GLuint*)malloc(frameBuffer->TextureSwapChainLength * sizeof(GLuint));
 
     ALOGV("        frameBuffer->UseMultiview = %d", frameBuffer->UseMultiview);
 
     for (int i = 0; i < frameBuffer->TextureSwapChainLength; i++) {
         // Create the color buffer texture.
-        const GLuint colorTexture =
-                vrapi_GetTextureSwapChainHandle(frameBuffer->ColorTextureSwapChain, i);
+        const GLuint colorTexture = vrapi_GetTextureSwapChainHandle(frameBuffer->ColorTextureSwapChain, i);
         GLenum colorTextureTarget = frameBuffer->UseMultiview ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
         GL(glBindTexture(colorTextureTarget, colorTexture));
         if (glExtensions.EXT_texture_border_clamp) {
@@ -872,45 +531,17 @@ static bool ovrFramebuffer_Create(
             GL(glGenFramebuffers(1, &frameBuffer->FrameBuffers[i]));
             GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer->FrameBuffers[i]));
             if (multisamples > 1 && (glFramebufferTextureMultisampleMultiviewOVR != NULL)) {
-                GL(glFramebufferTextureMultisampleMultiviewOVR(
-                        GL_DRAW_FRAMEBUFFER,
-                        GL_DEPTH_ATTACHMENT,
-                        frameBuffer->DepthBuffers[i],
-                        0 /* level */,
-                        multisamples /* samples */,
-                        0 /* baseViewIndex */,
-                        2 /* numViews */));
-                GL(glFramebufferTextureMultisampleMultiviewOVR(
-                        GL_DRAW_FRAMEBUFFER,
-                        GL_COLOR_ATTACHMENT0,
-                        colorTexture,
-                        0 /* level */,
-                        multisamples /* samples */,
-                        0 /* baseViewIndex */,
-                        2 /* numViews */));
+                GL(glFramebufferTextureMultisampleMultiviewOVR( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, frameBuffer->DepthBuffers[i], 0 /* level */, multisamples /* samples */, 0 /* baseViewIndex */, 2 /* numViews */));
+                GL(glFramebufferTextureMultisampleMultiviewOVR( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorTexture, 0 /* level */, multisamples /* samples */, 0 /* baseViewIndex */, 2 /* numViews */));
             } else {
-                GL(glFramebufferTextureMultiviewOVR(
-                        GL_DRAW_FRAMEBUFFER,
-                        GL_DEPTH_ATTACHMENT,
-                        frameBuffer->DepthBuffers[i],
-                        0 /* level */,
-                        0 /* baseViewIndex */,
-                        2 /* numViews */));
-                GL(glFramebufferTextureMultiviewOVR(
-                        GL_DRAW_FRAMEBUFFER,
-                        GL_COLOR_ATTACHMENT0,
-                        colorTexture,
-                        0 /* level */,
-                        0 /* baseViewIndex */,
-                        2 /* numViews */));
+                GL(glFramebufferTextureMultiviewOVR( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, frameBuffer->DepthBuffers[i], 0 /* level */, 0 /* baseViewIndex */, 2 /* numViews */));
+                GL(glFramebufferTextureMultiviewOVR( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorTexture, 0 /* level */, 0 /* baseViewIndex */, 2 /* numViews */));
             }
 
             GL(GLenum renderFramebufferStatus = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER));
             GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
             if (renderFramebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
-                ALOGE(
-                        "Incomplete frame buffer object: %s",
-                        GlFrameBufferStatusString(renderFramebufferStatus));
+                ALOGE( "Incomplete frame buffer object: %s", GlFrameBufferStatusString(renderFramebufferStatus));
                 return false;
             }
         } else {
@@ -919,32 +550,19 @@ static bool ovrFramebuffer_Create(
                 // Create multisampled depth buffer.
                 GL(glGenRenderbuffers(1, &frameBuffer->DepthBuffers[i]));
                 GL(glBindRenderbuffer(GL_RENDERBUFFER, frameBuffer->DepthBuffers[i]));
-                GL(glRenderbufferStorageMultisampleEXT(
-                        GL_RENDERBUFFER, multisamples, GL_DEPTH_COMPONENT24, width, height));
+                GL(glRenderbufferStorageMultisampleEXT( GL_RENDERBUFFER, multisamples, GL_DEPTH_COMPONENT24, width, height));
                 GL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
                 // Create the frame buffer.
                 // NOTE: glFramebufferTexture2DMultisampleEXT only works with GL_FRAMEBUFFER.
                 GL(glGenFramebuffers(1, &frameBuffer->FrameBuffers[i]));
                 GL(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer->FrameBuffers[i]));
-                GL(glFramebufferTexture2DMultisampleEXT(
-                        GL_FRAMEBUFFER,
-                        GL_COLOR_ATTACHMENT0,
-                        GL_TEXTURE_2D,
-                        colorTexture,
-                        0,
-                        multisamples));
-                GL(glFramebufferRenderbuffer(
-                        GL_FRAMEBUFFER,
-                        GL_DEPTH_ATTACHMENT,
-                        GL_RENDERBUFFER,
-                        frameBuffer->DepthBuffers[i]));
+                GL(glFramebufferTexture2DMultisampleEXT( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0, multisamples));
+                GL(glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, frameBuffer->DepthBuffers[i]));
                 GL(GLenum renderFramebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER));
                 GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
                 if (renderFramebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
-                    ALOGE(
-                            "Incomplete frame buffer object: %s",
-                            GlFrameBufferStatusString(renderFramebufferStatus));
+                    ALOGE( "Incomplete frame buffer object: %s", GlFrameBufferStatusString(renderFramebufferStatus));
                     return false;
                 }
             } else {
@@ -957,19 +575,12 @@ static bool ovrFramebuffer_Create(
                 // Create the frame buffer.
                 GL(glGenFramebuffers(1, &frameBuffer->FrameBuffers[i]));
                 GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer->FrameBuffers[i]));
-                GL(glFramebufferRenderbuffer(
-                        GL_DRAW_FRAMEBUFFER,
-                        GL_DEPTH_ATTACHMENT,
-                        GL_RENDERBUFFER,
-                        frameBuffer->DepthBuffers[i]));
-                GL(glFramebufferTexture2D(
-                        GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0));
+                GL(glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, frameBuffer->DepthBuffers[i]));
+                GL(glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0));
                 GL(GLenum renderFramebufferStatus = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER));
                 GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
                 if (renderFramebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
-                    ALOGE(
-                            "Incomplete frame buffer object: %s",
-                            GlFrameBufferStatusString(renderFramebufferStatus));
+                    ALOGE("Incomplete frame buffer object: %s", GlFrameBufferStatusString(renderFramebufferStatus));
                     return false;
                 }
             }
@@ -1020,185 +631,6 @@ static void ovrFramebuffer_Advance(ovrFramebuffer* frameBuffer) {
 /*
 ================================================================================
 
-ovrScene
-
-================================================================================
-*/
-
-#define NUM_INSTANCES 1500
-#define NUM_ROTATIONS 16
-
-typedef struct {
-    bool CreatedScene;
-    bool CreatedVAOs;
-    unsigned int Random;
-    ovrProgram Program;
-    ovrGeometry Cube;
-    GLuint SceneMatrices;
-    GLuint InstanceTransformBuffer;
-    ovrVector3f Rotations[NUM_ROTATIONS];
-    ovrVector3f CubePositions[NUM_INSTANCES];
-    int CubeRotations[NUM_INSTANCES];
-} ovrScene;
-
-static void ovrScene_Clear(ovrScene* scene) {
-    scene->CreatedScene = false;
-    scene->CreatedVAOs = false;
-    scene->Random = 2;
-    scene->SceneMatrices = 0;
-    scene->InstanceTransformBuffer = 0;
-
-    ovrProgram_Clear(&scene->Program);
-    ovrGeometry_Clear(&scene->Cube);
-}
-
-static bool ovrScene_IsCreated(ovrScene* scene) {
-    return scene->CreatedScene;
-}
-
-static void ovrScene_CreateVAOs(ovrScene* scene) {
-    if (!scene->CreatedVAOs) {
-        ovrGeometry_CreateVAO(&scene->Cube);
-
-        // Modify the VAO to use the instance transform attributes.
-        GL(glBindVertexArray(scene->Cube.VertexArrayObject));
-        GL(glBindBuffer(GL_ARRAY_BUFFER, scene->InstanceTransformBuffer));
-        for (int i = 0; i < 4; i++) {
-            GL(glEnableVertexAttribArray(VERTEX_ATTRIBUTE_LOCATION_TRANSFORM + i));
-            GL(glVertexAttribPointer(
-                    VERTEX_ATTRIBUTE_LOCATION_TRANSFORM + i,
-                    4,
-                    GL_FLOAT,
-                    false,
-                    4 * 4 * sizeof(float),
-                    (void*)(i * 4 * sizeof(float))));
-            GL(glVertexAttribDivisor(VERTEX_ATTRIBUTE_LOCATION_TRANSFORM + i, 1));
-        }
-        GL(glBindVertexArray(0));
-
-        scene->CreatedVAOs = true;
-    }
-}
-
-static void ovrScene_DestroyVAOs(ovrScene* scene) {
-    if (scene->CreatedVAOs) {
-        ovrGeometry_DestroyVAO(&scene->Cube);
-
-        scene->CreatedVAOs = false;
-    }
-}
-
-// Returns a random float in the range [0, 1].
-static float ovrScene_RandomFloat(ovrScene* scene) {
-    scene->Random = 1664525L * scene->Random + 1013904223L;
-    unsigned int rf = 0x3F800000 | (scene->Random & 0x007FFFFF);
-    return (*(float*)&rf) - 1.0f;
-}
-
-static void ovrScene_Create(ovrScene* scene, bool useMultiview) {
-    ovrProgram_Create(&scene->Program, VERTEX_SHADER, FRAGMENT_SHADER, useMultiview);
-    ovrGeometry_CreateCube(&scene->Cube);
-
-    // Create the instance transform attribute buffer.
-    GL(glGenBuffers(1, &scene->InstanceTransformBuffer));
-    GL(glBindBuffer(GL_ARRAY_BUFFER, scene->InstanceTransformBuffer));
-    GL(glBufferData(GL_ARRAY_BUFFER, NUM_INSTANCES * 4 * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW));
-    GL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
-    // Setup the scene matrices.
-    GL(glGenBuffers(1, &scene->SceneMatrices));
-    GL(glBindBuffer(GL_UNIFORM_BUFFER, scene->SceneMatrices));
-    GL(glBufferData(
-            GL_UNIFORM_BUFFER,
-            2 * sizeof(ovrMatrix4f) /* 2 view matrices */ +
-            2 * sizeof(ovrMatrix4f) /* 2 projection matrices */,
-            NULL,
-            GL_STATIC_DRAW));
-    GL(glBindBuffer(GL_UNIFORM_BUFFER, 0));
-
-    // Setup random rotations.
-    for (int i = 0; i < NUM_ROTATIONS; i++) {
-        scene->Rotations[i].x = ovrScene_RandomFloat(scene);
-        scene->Rotations[i].y = ovrScene_RandomFloat(scene);
-        scene->Rotations[i].z = ovrScene_RandomFloat(scene);
-    }
-
-    // Setup random cube positions and rotations.
-    for (int i = 0; i < NUM_INSTANCES; i++) {
-        // Using volatile keeps the compiler from optimizing away multiple calls to
-        // ovrScene_RandomFloat().
-        volatile float rx, ry, rz;
-        for (;;) {
-            rx = (ovrScene_RandomFloat(scene) - 0.5f) * (50.0f + sqrt(NUM_INSTANCES));
-            ry = (ovrScene_RandomFloat(scene) - 0.5f) * (50.0f + sqrt(NUM_INSTANCES));
-            rz = (ovrScene_RandomFloat(scene) - 0.5f) * (50.0f + sqrt(NUM_INSTANCES));
-            // If too close to 0,0,0
-            if (fabsf(rx) < 4.0f && fabsf(ry) < 4.0f && fabsf(rz) < 4.0f) {
-                continue;
-            }
-            // Test for overlap with any of the existing cubes.
-            bool overlap = false;
-            for (int j = 0; j < i; j++) {
-                if (fabsf(rx - scene->CubePositions[j].x) < 4.0f &&
-                    fabsf(ry - scene->CubePositions[j].y) < 4.0f &&
-                    fabsf(rz - scene->CubePositions[j].z) < 4.0f) {
-                    overlap = true;
-                    break;
-                }
-            }
-            if (!overlap) {
-                break;
-            }
-        }
-
-        rx *= 0.1f;
-        ry *= 0.1f;
-        rz *= 0.1f;
-
-        // Insert into list sorted based on distance.
-        int insert = 0;
-        const float distSqr = rx * rx + ry * ry + rz * rz;
-        for (int j = i; j > 0; j--) {
-            const ovrVector3f* otherPos = &scene->CubePositions[j - 1];
-            const float otherDistSqr =
-                    otherPos->x * otherPos->x + otherPos->y * otherPos->y + otherPos->z * otherPos->z;
-            if (distSqr > otherDistSqr) {
-                insert = j;
-                break;
-            }
-            scene->CubePositions[j] = scene->CubePositions[j - 1];
-            scene->CubeRotations[j] = scene->CubeRotations[j - 1];
-        }
-
-        scene->CubePositions[insert].x = rx;
-        scene->CubePositions[insert].y = ry;
-        scene->CubePositions[insert].z = rz;
-
-        scene->CubeRotations[insert] = (int)(ovrScene_RandomFloat(scene) * (NUM_ROTATIONS - 0.1f));
-    }
-
-    scene->CreatedScene = true;
-
-#if !MULTI_THREADED
-    ovrScene_CreateVAOs(scene);
-#endif
-}
-
-static void ovrScene_Destroy(ovrScene* scene) {
-#if !MULTI_THREADED
-    ovrScene_DestroyVAOs(scene);
-#endif
-
-    ovrProgram_Destroy(&scene->Program);
-    ovrGeometry_Destroy(&scene->Cube);
-    GL(glDeleteBuffers(1, &scene->InstanceTransformBuffer));
-    GL(glDeleteBuffers(1, &scene->SceneMatrices));
-    scene->CreatedScene = false;
-}
-
-/*
-================================================================================
-
 ovrSimulation
 
 ================================================================================
@@ -1231,6 +663,7 @@ ovrRenderer
 
 typedef struct {
     ovrFramebuffer FrameBuffer[VRAPI_FRAME_LAYER_EYE_MAX];
+    ovrFramebuffer HUDFrameBuffer[VRAPI_FRAME_LAYER_EYE_MAX];
     int NumBuffers;
 } ovrRenderer;
 
@@ -1241,8 +674,7 @@ static void ovrRenderer_Clear(ovrRenderer* renderer) {
     renderer->NumBuffers = VRAPI_FRAME_LAYER_EYE_MAX;
 }
 
-static void
-ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const bool useMultiview) {
+static void ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const bool useMultiview) {
     renderer->NumBuffers = useMultiview ? 1 : VRAPI_FRAME_LAYER_EYE_MAX;
 
     // Create the frame buffers.
@@ -1250,7 +682,15 @@ ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const bool useMul
         ovrFramebuffer_Create(
                 &renderer->FrameBuffer[eye],
                 useMultiview,
-                GL_RGBA8,
+                VRAPI_TEXTURE_FORMAT_8888_sRGB,
+                vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH),
+                vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT),
+                NUM_MULTI_SAMPLES);
+
+        ovrFramebuffer_Create(
+                &renderer->HUDFrameBuffer[eye],
+                useMultiview,
+                VRAPI_TEXTURE_FORMAT_8888_sRGB,
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH),
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT),
                 NUM_MULTI_SAMPLES);
@@ -1263,411 +703,161 @@ static void ovrRenderer_Destroy(ovrRenderer* renderer) {
     }
 }
 
-static ovrLayerProjection2 ovrRenderer_RenderFrame(
-        ovrRenderer* renderer,
-        const ovrJava* java,
-        const ovrScene* scene,
-        const ovrSimulation* simulation,
-        const ovrTracking2* tracking,
-        ovrMobile* ovr) {
-    ovrMatrix4f rotationMatrices[NUM_ROTATIONS];
-    for (int i = 0; i < NUM_ROTATIONS; i++) {
-        rotationMatrices[i] = ovrMatrix4f_CreateRotation(
-                scene->Rotations[i].x * simulation->CurrentRotation.x,
-                scene->Rotations[i].y * simulation->CurrentRotation.y,
-                scene->Rotations[i].z * simulation->CurrentRotation.z);
+static void ovrRenderer_clearBorder(ovrFramebuffer *frameBuffer) {
+    if (glExtensions.EXT_texture_border_clamp == false) {
+        // Clear to fully opaque black.
+        GL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+        // bottom
+        GL(glScissor(0, 0, frameBuffer->Width, 1));
+        GL(glClear(GL_COLOR_BUFFER_BIT));
+        // top
+        GL(glScissor(0, frameBuffer->Height - 1, frameBuffer->Width, 1));
+        GL(glClear(GL_COLOR_BUFFER_BIT));
+        // left
+        GL(glScissor(0, 0, 1, frameBuffer->Height));
+        GL(glClear(GL_COLOR_BUFFER_BIT));
+        // right
+        GL(glScissor(frameBuffer->Width - 1, 0, 1, frameBuffer->Height));
+        GL(glClear(GL_COLOR_BUFFER_BIT));
     }
+}
 
-    // Update the instance transform attributes.
-    GL(glBindBuffer(GL_ARRAY_BUFFER, scene->InstanceTransformBuffer));
-    GL(ovrMatrix4f* cubeTransforms = (ovrMatrix4f*)glMapBufferRange(
-            GL_ARRAY_BUFFER,
-            0,
-            NUM_INSTANCES * sizeof(ovrMatrix4f),
-               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-    for (int i = 0; i < NUM_INSTANCES; i++) {
-        const int index = scene->CubeRotations[i];
-
-        // Write in order in case the mapped buffer lives on write-combined memory.
-        cubeTransforms[i].M[0][0] = rotationMatrices[index].M[0][0];
-        cubeTransforms[i].M[0][1] = rotationMatrices[index].M[0][1];
-        cubeTransforms[i].M[0][2] = rotationMatrices[index].M[0][2];
-        cubeTransforms[i].M[0][3] = rotationMatrices[index].M[0][3];
-
-        cubeTransforms[i].M[1][0] = rotationMatrices[index].M[1][0];
-        cubeTransforms[i].M[1][1] = rotationMatrices[index].M[1][1];
-        cubeTransforms[i].M[1][2] = rotationMatrices[index].M[1][2];
-        cubeTransforms[i].M[1][3] = rotationMatrices[index].M[1][3];
-
-        cubeTransforms[i].M[2][0] = rotationMatrices[index].M[2][0];
-        cubeTransforms[i].M[2][1] = rotationMatrices[index].M[2][1];
-        cubeTransforms[i].M[2][2] = rotationMatrices[index].M[2][2];
-        cubeTransforms[i].M[2][3] = rotationMatrices[index].M[2][3];
-
-        cubeTransforms[i].M[3][0] = scene->CubePositions[i].x;
-        cubeTransforms[i].M[3][1] = scene->CubePositions[i].y;
-        cubeTransforms[i].M[3][2] = scene->CubePositions[i].z;
-        cubeTransforms[i].M[3][3] = 1.0f;
-    }
-    GL(glUnmapBuffer(GL_ARRAY_BUFFER));
-    GL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
+                                                   const ovrJava* java,
+                                                   std::shared_ptr<VRORenderer> renderer,
+                                                   std::shared_ptr<VRODriverOpenGLAndroid> driver,
+                                                   long long frameIndex,
+                                                   const ovrSimulation* simulation,
+                                                   const ovrTracking2* tracking, ovrMobile* ovr,
+                                                   ovrLayerProjection2 *sceneLayer,
+                                                   ovrLayerProjection2 *hudLayer) {
 
     ovrTracking2 updatedTracking = *tracking;
 
-    ovrMatrix4f eyeViewMatrixTransposed[2];
-    eyeViewMatrixTransposed[0] = ovrMatrix4f_Transpose(&updatedTracking.Eye[0].ViewMatrix);
-    eyeViewMatrixTransposed[1] = ovrMatrix4f_Transpose(&updatedTracking.Eye[1].ViewMatrix);
+    // Calculate the view matrix.
+    ovrPosef headPose = updatedTracking.HeadPose.Pose;
+    VROQuaternion quaternion(headPose.Orientation.x, headPose.Orientation.y, headPose.Orientation.z, headPose.Orientation.w);
+    VROMatrix4f headRotation = quaternion.getMatrix();
 
-    ovrMatrix4f projectionMatrixTransposed[2];
-    projectionMatrixTransposed[0] = ovrMatrix4f_Transpose(&updatedTracking.Eye[0].ProjectionMatrix);
-    projectionMatrixTransposed[1] = ovrMatrix4f_Transpose(&updatedTracking.Eye[1].ProjectionMatrix);
+    // The scene layer renders the Scene, the HUD layer renders headlocked UI
+    *sceneLayer = vrapi_DefaultLayerProjection2();
+    *hudLayer   = vrapi_DefaultLayerProjection2();
 
-    // Update the scene matrices.
-    GL(glBindBuffer(GL_UNIFORM_BUFFER, scene->SceneMatrices));
-    GL(ovrMatrix4f* sceneMatrices = (ovrMatrix4f*)glMapBufferRange(
-            GL_UNIFORM_BUFFER,
-            0,
-            2 * sizeof(ovrMatrix4f) /* 2 view matrices */ +
-            2 * sizeof(ovrMatrix4f) /* 2 projection matrices */,
-               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+    // Ensure the HUD layer is correctly blended on top of the scene layer
+    hudLayer->Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
+    hudLayer->Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
 
-    if (sceneMatrices != NULL) {
-        memcpy((char*)sceneMatrices, &eyeViewMatrixTransposed, 2 * sizeof(ovrMatrix4f));
-        memcpy(
-                (char*)sceneMatrices + 2 * sizeof(ovrMatrix4f),
-                &projectionMatrixTransposed,
-                2 * sizeof(ovrMatrix4f));
-    }
+    sceneLayer->HeadPose = updatedTracking.HeadPose;
+    hudLayer->HeadPose   = updatedTracking.HeadPose;
 
-    GL(glUnmapBuffer(GL_UNIFORM_BUFFER));
-    GL(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+    // Improves the quality of the scene layer
+    sceneLayer->Header.Flags |= VRAPI_FRAME_LAYER_FLAG_CHROMATIC_ABERRATION_CORRECTION;
 
-    ovrLayerProjection2 layer = vrapi_DefaultLayerProjection2();
-    layer.HeadPose = updatedTracking.HeadPose;
+    // Ensures "async timewarp" is not applied to the HUD; reduces jitter
+    hudLayer->Header.Flags |= VRAPI_FRAME_LAYER_FLAG_FIXED_TO_VIEW;
+
+    VROMatrix4f eyeFromHeadMatrix[VRAPI_FRAME_LAYER_EYE_MAX];
+    float interpupillaryDistance = vrapi_GetInterpupillaryDistance(&updatedTracking);
+
+    // Attach each layer to its associated framebuffer's texture swap chain
     for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
-        ovrFramebuffer* frameBuffer = &renderer->FrameBuffer[renderer->NumBuffers == 1 ? 0 : eye];
-        layer.Textures[eye].ColorSwapChain = frameBuffer->ColorTextureSwapChain;
-        layer.Textures[eye].SwapChainIndex = frameBuffer->TextureSwapChainIndex;
-        layer.Textures[eye].TexCoordsFromTanAngles =
-                ovrMatrix4f_TanAngleMatrixFromProjection(&updatedTracking.Eye[eye].ProjectionMatrix);
-    }
-    layer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_CHROMATIC_ABERRATION_CORRECTION;
+        ovrFramebuffer* frameBuffer = &rendererOVR->FrameBuffer[rendererOVR->NumBuffers == 1 ? 0 : eye];
+        sceneLayer->Textures[eye].ColorSwapChain = frameBuffer->ColorTextureSwapChain;
+        sceneLayer->Textures[eye].SwapChainIndex = frameBuffer->TextureSwapChainIndex;
+        sceneLayer->Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&updatedTracking.Eye[eye].ProjectionMatrix);
 
-    // Render the eye images.
-    for (int eye = 0; eye < renderer->NumBuffers; eye++) {
+        ovrFramebuffer *hudFrameBuffer = &rendererOVR->HUDFrameBuffer[rendererOVR->NumBuffers == 1 ? 0 : eye];
+        hudLayer->Textures[eye].ColorSwapChain = hudFrameBuffer->ColorTextureSwapChain;
+        hudLayer->Textures[eye].SwapChainIndex = hudFrameBuffer->TextureSwapChainIndex;
+
+        const float eyeOffset = ( eye ? -0.5f : 0.5f ) * interpupillaryDistance;
+        const ovrMatrix4f eyeOffsetMatrix = ovrMatrix4f_CreateTranslation( eyeOffset, 0.0f, 0.0f );
+        eyeFromHeadMatrix[eye] = toMatrix4f(eyeOffsetMatrix);
+    }
+
+    // We use our projection matrix because the one computed by OVR appears to be identical for
+    // left and right, but with fixed NCP and FCP. Our projection uses the correct NCP and FCP.
+    // VIRO TODO: Is this still the case?
+    ovrFramebuffer *leftFB = &rendererOVR->FrameBuffer[0];
+    VROViewport leftViewport(0, 0, leftFB->Width, leftFB->Height);
+    float fovX = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X );
+    float fovY = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y );
+    VROFieldOfView fov(fovX / 2.0, fovX / 2.0, fovY / 2.0, fovY / 2.0);
+
+    VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, renderer->getFarClippingPlane());
+    renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, projection, driver);
+
+    // Render the scene to the textures in the scene layer
+    for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
         // NOTE: In the non-mv case, latency can be further reduced by updating the sensor
         // prediction for each eye (updates orientation, not position)
-        ovrFramebuffer* frameBuffer = &renderer->FrameBuffer[eye];
+        ovrFramebuffer* frameBuffer = &rendererOVR->FrameBuffer[eye];
         ovrFramebuffer_SetCurrent(frameBuffer);
+        std::dynamic_pointer_cast<VRODisplayOpenGLOVR>(driver->getDisplay())->setFrameBuffer(frameBuffer);
 
-        GL(glUseProgram(scene->Program.Program));
-        GL(glBindBufferBase(
-                GL_UNIFORM_BUFFER,
-                scene->Program.UniformBinding[UNIFORM_SCENE_MATRICES],
-                scene->SceneMatrices));
-        if (scene->Program.UniformLocation[UNIFORM_VIEW_ID] >=
-            0) // NOTE: will not be present when multiview path is enabled.
-        {
-            GL(glUniform1i(scene->Program.UniformLocation[UNIFORM_VIEW_ID], eye));
-        }
-        GL(glEnable(GL_SCISSOR_TEST));
-        GL(glDepthMask(GL_TRUE));
-        GL(glEnable(GL_DEPTH_TEST));
-        GL(glDepthFunc(GL_LEQUAL));
-        GL(glEnable(GL_CULL_FACE));
-        GL(glCullFace(GL_BACK));
-        GL(glViewport(0, 0, frameBuffer->Width, frameBuffer->Height));
-        GL(glScissor(0, 0, frameBuffer->Width, frameBuffer->Height));
-        GL(glClearColor(0.125f, 0.0f, 0.125f, 1.0f));
-        GL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-        GL(glBindVertexArray(scene->Cube.VertexArrayObject));
-        GL(glDrawElementsInstanced(
-                GL_TRIANGLES, scene->Cube.IndexCount, GL_UNSIGNED_SHORT, NULL, NUM_INSTANCES));
-        GL(glBindVertexArray(0));
-        GL(glUseProgram(0));
+        GL( glEnable(GL_SCISSOR_TEST) );
+        GL( glScissor( 0, 0, frameBuffer->Width, frameBuffer->Height) );
+        GL( glViewport(0, 0, frameBuffer->Width, frameBuffer->Height) );
+
+        GL( glEnable(GL_DEPTH_TEST) );
+        GL( glEnable(GL_STENCIL_TEST) );
+        GL( glClearColor(0.0f, 0.0f, 0.0f, 1.0f) );
+        GL( glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) );
+
+        VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
+        VROViewport viewport = { 0, 0, frameBuffer->Width, frameBuffer->Height };
+
+        VROMatrix4f viroHeadView = renderer->getLookAtMatrix();
+        VROMatrix4f ovrEyeView = toMatrix4f(updatedTracking.Eye[eye].ViewMatrix);
+
+        // Copy over the values from the OVR eye view matrix into our Viro head view matrix to
+        // get the correct translation (this appears to be the only thing OVR is changing to
+        // derive its eye view matrix from its head view matrix). Note we don't pass the OVR eye
+        // view matrix directly into Viro because we need to take Viro's pointOfView into account,
+        // which is captured in the viroHeadView
+        for (int i = 12; i < 15; i++) {
+            viroHeadView[i] += ovrEyeView[i];
+        } //After these additions, viroHeadView is really viroEyeView
+
+        // We use our projection matrix because the one computed by OVR appears to be identical for
+        // left and right, but with fixed NCP and FCP. Our projection uses the correct NCP and FCP.
+        renderer->renderEye(eyeType,
+                            viroHeadView,
+                            projection,
+                            viewport, driver);
 
         // Explicitly clear the border texels to black when GL_CLAMP_TO_BORDER is not available.
-        if (glExtensions.EXT_texture_border_clamp == false) {
-            // Clear to fully opaque black.
-            GL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
-            // bottom
-            GL(glScissor(0, 0, frameBuffer->Width, 1));
-            GL(glClear(GL_COLOR_BUFFER_BIT));
-            // top
-            GL(glScissor(0, frameBuffer->Height - 1, frameBuffer->Width, 1));
-            GL(glClear(GL_COLOR_BUFFER_BIT));
-            // left
-            GL(glScissor(0, 0, 1, frameBuffer->Height));
-            GL(glClear(GL_COLOR_BUFFER_BIT));
-            // right
-            GL(glScissor(frameBuffer->Width - 1, 0, 1, frameBuffer->Height));
-            GL(glClear(GL_COLOR_BUFFER_BIT));
-        }
-
+        ovrRenderer_clearBorder(frameBuffer);
         ovrFramebuffer_Resolve(frameBuffer);
         ovrFramebuffer_Advance(frameBuffer);
     }
 
+    // Render the HUD to the textures in the HUD layer
+    for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
+        ovrFramebuffer *frameBuffer = &rendererOVR->HUDFrameBuffer[eye];
+        ovrFramebuffer_SetCurrent(frameBuffer);
+
+        GL( glEnable(GL_SCISSOR_TEST) );
+        GL( glScissor( 0, 0, frameBuffer->Width, frameBuffer->Height) );
+        GL( glViewport(0, 0, frameBuffer->Width, frameBuffer->Height) );
+
+        GL( glEnable(GL_DEPTH_TEST) );
+        GL( glClearColor(0.0f, 0.0f, 0.0f, 0.0f) );
+        GL( glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) );
+
+        VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
+        renderer->renderHUD(eyeType, eyeFromHeadMatrix[eye], projection, driver);
+
+        ovrRenderer_clearBorder(frameBuffer);
+        ovrFramebuffer_Resolve(frameBuffer);
+        ovrFramebuffer_Advance(frameBuffer);
+    }
+
+    renderer->endFrame(driver);
+    ALLOCATION_TRACKER_PRINT();
+
     ovrFramebuffer_SetNone();
-
-    return layer;
 }
-
-/*
-================================================================================
-
-ovrRenderThread
-
-================================================================================
-*/
-
-#if MULTI_THREADED
-
-typedef enum { RENDER_FRAME, RENDER_LOADING_ICON, RENDER_BLACK_FINAL } ovrRenderType;
-
-typedef struct {
-    JavaVM* JavaVm;
-    jobject ActivityObject;
-    const ovrEgl* ShareEgl;
-    pthread_t Thread;
-    int Tid;
-    bool UseMultiview;
-    // Synchronization
-    bool Exit;
-    bool WorkAvailableFlag;
-    bool WorkDoneFlag;
-    pthread_cond_t WorkAvailableCondition;
-    pthread_cond_t WorkDoneCondition;
-    pthread_mutex_t Mutex;
-    // Latched data for rendering.
-    ovrMobile* Ovr;
-    ovrRenderType RenderType;
-    long long FrameIndex;
-    double DisplayTime;
-    int SwapInterval;
-    ovrScene* Scene;
-    ovrSimulation Simulation;
-    ovrTracking2 Tracking;
-} ovrRenderThread;
-
-void* RenderThreadFunction(void* parm) {
-    ovrRenderThread* renderThread = (ovrRenderThread*)parm;
-    renderThread->Tid = gettid();
-
-    ovrJava java;
-    java.Vm = renderThread->JavaVm;
-    (*java.Vm)->AttachCurrentThread(java.Vm, &java.Env, NULL);
-    java.ActivityObject = renderThread->ActivityObject;
-
-    // Note that AttachCurrentThread will reset the thread name.
-    prctl(PR_SET_NAME, (long)"OVR::Renderer", 0, 0, 0);
-
-    ovrEgl egl;
-    ovrEgl_CreateContext(&egl, renderThread->ShareEgl);
-
-    ovrRenderer renderer;
-    ovrRenderer_Create(&renderer, &java, renderThread->UseMultiview);
-
-    ovrScene* lastScene = NULL;
-
-    for (;;) {
-        // Signal work completed.
-        pthread_mutex_lock(&renderThread->Mutex);
-        renderThread->WorkDoneFlag = true;
-        pthread_cond_signal(&renderThread->WorkDoneCondition);
-        pthread_mutex_unlock(&renderThread->Mutex);
-
-        // Wait for work.
-        pthread_mutex_lock(&renderThread->Mutex);
-        while (!renderThread->WorkAvailableFlag) {
-            pthread_cond_wait(&renderThread->WorkAvailableCondition, &renderThread->Mutex);
-        }
-        renderThread->WorkAvailableFlag = false;
-        pthread_mutex_unlock(&renderThread->Mutex);
-
-        // Check for exit.
-        if (renderThread->Exit) {
-            break;
-        }
-
-        // Make sure the scene has VAOs created for this context.
-        if (renderThread->Scene != NULL && renderThread->Scene != lastScene) {
-            if (lastScene != NULL) {
-                ovrScene_DestroyVAOs(lastScene);
-            }
-            ovrScene_CreateVAOs(renderThread->Scene);
-            lastScene = renderThread->Scene;
-        }
-
-        // Render.
-        ovrLayer_Union2 layers[ovrMaxLayerCount] = {0};
-        int layerCount = 0;
-        int frameFlags = 0;
-
-        if (renderThread->RenderType == RENDER_FRAME) {
-            ovrLayerProjection2 layer;
-            layer = ovrRenderer_RenderFrame(
-                &renderer,
-                &java,
-                renderThread->Scene,
-                &renderThread->Simulation,
-                &renderThread->Tracking,
-                renderThread->Ovr);
-
-            layers[layerCount++].Projection = layer;
-        } else if (renderThread->RenderType == RENDER_LOADING_ICON) {
-            ovrLayerProjection2 blackLayer = vrapi_DefaultLayerBlackProjection2();
-            blackLayer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-            layers[layerCount++].Projection = blackLayer;
-
-            ovrLayerLoadingIcon2 iconLayer = vrapi_DefaultLayerLoadingIcon2();
-            iconLayer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-            layers[layerCount++].LoadingIcon = iconLayer;
-
-            frameFlags |= VRAPI_FRAME_FLAG_FLUSH;
-        } else if (renderThread->RenderType == RENDER_BLACK_FINAL) {
-            ovrLayerProjection2 layer = vrapi_DefaultLayerBlackProjection2();
-            layer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-            layers[layerCount++].Projection = layer;
-
-            frameFlags |= VRAPI_FRAME_FLAG_FLUSH | VRAPI_FRAME_FLAG_FINAL;
-        }
-
-        const ovrLayerHeader2* layerList[ovrMaxLayerCount] = {0};
-        for (int i = 0; i < layerCount; i++) {
-            layerList[i] = &layers[i].Header;
-        }
-
-        ovrSubmitFrameDescription2 frameDesc = {0};
-        frameDesc.Flags = frameFlags;
-        frameDesc.SwapInterval = renderThread->SwapInterval;
-        frameDesc.FrameIndex = renderThread->FrameIndex;
-        frameDesc.DisplayTime = renderThread->DisplayTime;
-        frameDesc.LayerCount = layerCount;
-        frameDesc.Layers = layerList;
-
-        vrapi_SubmitFrame2(renderThread->Ovr, &frameDesc);
-    }
-
-    if (lastScene != NULL) {
-        ovrScene_DestroyVAOs(lastScene);
-    }
-
-    ovrRenderer_Destroy(&renderer);
-    ovrEgl_DestroyContext(&egl);
-
-    (*java.Vm)->DetachCurrentThread(java.Vm);
-
-    return NULL;
-}
-
-static void ovrRenderThread_Clear(ovrRenderThread* renderThread) {
-    renderThread->JavaVm = NULL;
-    renderThread->ActivityObject = NULL;
-    renderThread->ShareEgl = NULL;
-    renderThread->Thread = 0;
-    renderThread->Tid = 0;
-    renderThread->UseMultiview = false;
-    renderThread->Exit = false;
-    renderThread->WorkAvailableFlag = false;
-    renderThread->WorkDoneFlag = false;
-    renderThread->Ovr = NULL;
-    renderThread->RenderType = RENDER_FRAME;
-    renderThread->FrameIndex = 1;
-    renderThread->DisplayTime = 0;
-    renderThread->SwapInterval = 1;
-    renderThread->Scene = NULL;
-    ovrSimulation_Clear(&renderThread->Simulation);
-}
-
-static void ovrRenderThread_Create(
-    ovrRenderThread* renderThread,
-    const ovrJava* java,
-    const ovrEgl* shareEgl,
-    const bool useMultiview) {
-    renderThread->JavaVm = java->Vm;
-    renderThread->ActivityObject = java->ActivityObject;
-    renderThread->ShareEgl = shareEgl;
-    renderThread->Thread = 0;
-    renderThread->Tid = 0;
-    renderThread->UseMultiview = useMultiview;
-    renderThread->Exit = false;
-    renderThread->WorkAvailableFlag = false;
-    renderThread->WorkDoneFlag = false;
-    pthread_cond_init(&renderThread->WorkAvailableCondition, NULL);
-    pthread_cond_init(&renderThread->WorkDoneCondition, NULL);
-    pthread_mutex_init(&renderThread->Mutex, NULL);
-
-    const int createErr =
-        pthread_create(&renderThread->Thread, NULL, RenderThreadFunction, renderThread);
-    if (createErr != 0) {
-        ALOGE("pthread_create returned %i", createErr);
-    }
-}
-
-static void ovrRenderThread_Destroy(ovrRenderThread* renderThread) {
-    pthread_mutex_lock(&renderThread->Mutex);
-    renderThread->Exit = true;
-    renderThread->WorkAvailableFlag = true;
-    pthread_cond_signal(&renderThread->WorkAvailableCondition);
-    pthread_mutex_unlock(&renderThread->Mutex);
-
-    pthread_join(renderThread->Thread, NULL);
-    pthread_cond_destroy(&renderThread->WorkAvailableCondition);
-    pthread_cond_destroy(&renderThread->WorkDoneCondition);
-    pthread_mutex_destroy(&renderThread->Mutex);
-}
-
-static void ovrRenderThread_Submit(
-    ovrRenderThread* renderThread,
-    ovrMobile* ovr,
-    ovrRenderType type,
-    long long frameIndex,
-    double displayTime,
-    int swapInterval,
-    ovrScene* scene,
-    const ovrSimulation* simulation,
-    const ovrTracking2* tracking) {
-    // Wait for the renderer thread to finish the last frame.
-    pthread_mutex_lock(&renderThread->Mutex);
-    while (!renderThread->WorkDoneFlag) {
-        pthread_cond_wait(&renderThread->WorkDoneCondition, &renderThread->Mutex);
-    }
-    renderThread->WorkDoneFlag = false;
-    // Latch the render data.
-    renderThread->Ovr = ovr;
-    renderThread->RenderType = type;
-    renderThread->FrameIndex = frameIndex;
-    renderThread->DisplayTime = displayTime;
-    renderThread->SwapInterval = swapInterval;
-    renderThread->Scene = scene;
-    if (simulation != NULL) {
-        renderThread->Simulation = *simulation;
-    }
-    if (tracking != NULL) {
-        renderThread->Tracking = *tracking;
-    }
-    // Signal work is available.
-    renderThread->WorkAvailableFlag = true;
-    pthread_cond_signal(&renderThread->WorkAvailableCondition);
-    pthread_mutex_unlock(&renderThread->Mutex);
-}
-
-static void ovrRenderThread_Wait(ovrRenderThread* renderThread) {
-    // Wait for the renderer thread to finish the last frame.
-    pthread_mutex_lock(&renderThread->Mutex);
-    while (!renderThread->WorkDoneFlag) {
-        pthread_cond_wait(&renderThread->WorkDoneCondition, &renderThread->Mutex);
-    }
-    pthread_mutex_unlock(&renderThread->Mutex);
-}
-
-static int ovrRenderThread_GetTid(ovrRenderThread* renderThread) {
-    ovrRenderThread_Wait(renderThread);
-    return renderThread->Tid;
-}
-
-#endif // MULTI_THREADED
 
 /*
 ================================================================================
@@ -1683,7 +873,6 @@ typedef struct {
     ANativeWindow* NativeWindow;
     bool Resumed;
     ovrMobile* Ovr;
-    ovrScene Scene;
     ovrSimulation Simulation;
     long long FrameIndex;
     double DisplayTime;
@@ -1694,12 +883,12 @@ typedef struct {
     int RenderThreadTid;
     bool BackButtonDownLastFrame;
     bool GamePadBackButtonDown;
-#if MULTI_THREADED
-    ovrRenderThread RenderThread;
-#else
     ovrRenderer Renderer;
-#endif
     bool UseMultiview;
+
+    // Viro parameters
+    std::shared_ptr<VRORenderer> vroRenderer;
+    std::shared_ptr<VRODriverOpenGLAndroid> driver;
 } ovrApp;
 
 static void ovrApp_Clear(ovrApp* app) {
@@ -1721,13 +910,8 @@ static void ovrApp_Clear(ovrApp* app) {
     app->UseMultiview = true;
 
     ovrEgl_Clear(&app->Egl);
-    ovrScene_Clear(&app->Scene);
     ovrSimulation_Clear(&app->Simulation);
-#if MULTI_THREADED
-    ovrRenderThread_Clear(&app->RenderThread);
-#else
     ovrRenderer_Clear(&app->Renderer);
-#endif
 }
 
 static void ovrApp_HandleVrModeChanges(ovrApp* app) {
@@ -1774,10 +958,6 @@ static void ovrApp_HandleVrModeChanges(ovrApp* app) {
         }
     } else {
         if (app->Ovr != NULL) {
-#if MULTI_THREADED
-            // Make sure the renderer thread is no longer using the ovrMobile.
-            ovrRenderThread_Wait(&app->RenderThread);
-#endif
             ALOGV("        eglGetCurrentSurface( EGL_DRAW ) = %p", eglGetCurrentSurface(EGL_DRAW));
 
             ALOGV("        vrapi_LeaveVrMode()");
@@ -1790,6 +970,7 @@ static void ovrApp_HandleVrModeChanges(ovrApp* app) {
     }
 }
 
+// VIRO TODO - Integrate our own VROInputControllerBase
 static void ovrApp_HandleInput(ovrApp* app) {
     bool backButtonDownThisFrame = false;
 
@@ -1917,7 +1098,7 @@ typedef struct {
 
 static void ovrMessage_Init(ovrMessage* message, const int id, const int wait) {
     message->Id = id;
-    message->Wait = wait;
+    message->Wait = (ovrMQWait)wait;
     memset(message->Parms, 0, sizeof(message->Parms));
 }
 
@@ -2074,23 +1255,27 @@ enum {
     MESSAGE_ON_SURFACE_CREATED,
     MESSAGE_ON_SURFACE_DESTROYED,
     MESSAGE_ON_KEY_EVENT,
-    MESSAGE_ON_TOUCH_EVENT
+    MESSAGE_ON_TOUCH_EVENT,
 };
 
-typedef struct {
+struct ovrAppThread {
     JavaVM* JavaVm;
     jobject ActivityObject;
     pthread_t Thread;
     ovrMessageQueue MessageQueue;
     ANativeWindow* NativeWindow;
-} ovrAppThread;
+
+    std::shared_ptr<VRORenderer> vroRenderer;
+    std::shared_ptr<VRODriverOpenGLAndroid> driver;
+    jobject view;
+};
 
 void* AppThreadFunction(void* parm) {
     ovrAppThread* appThread = (ovrAppThread*)parm;
 
     ovrJava java;
     java.Vm = appThread->JavaVm;
-    (*java.Vm)->AttachCurrentThread(java.Vm, &java.Env, NULL);
+    java.Vm->AttachCurrentThread( &java.Env, NULL );
     java.ActivityObject = appThread->ActivityObject;
 
     // Note that AttachCurrentThread will reset the thread name.
@@ -2100,6 +1285,7 @@ void* AppThreadFunction(void* parm) {
     int32_t initResult = vrapi_Initialize(&initParms);
     if (initResult != VRAPI_INITIALIZE_SUCCESS) {
         // If intialization failed, vrapi_* function calls will not be available.
+        // VIRO TODO: Call vrapi_Shutdown?
         exit(0);
     }
 
@@ -2118,20 +1304,20 @@ void* AppThreadFunction(void* parm) {
             (glExtensions.multi_view &&
              vrapi_GetSystemPropertyInt(&appState.Java, VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE));
 
+    // TODO VIRO-725: enable multiview rendering (start by removing this line to detect multiview support correctly)
+    appState.UseMultiview = false;
+
     ALOGV("AppState UseMultiview : %d", appState.UseMultiview);
 
     appState.CpuLevel = CPU_LEVEL;
     appState.GpuLevel = GPU_LEVEL;
     appState.MainThreadTid = gettid();
-
-#if MULTI_THREADED
-    ovrRenderThread_Create(
-        &appState.RenderThread, &appState.Java, &appState.Egl, appState.UseMultiview);
-    // Also set the renderer thread to SCHED_FIFO.
-    appState.RenderThreadTid = ovrRenderThread_GetTid(&appState.RenderThread);
-#else
     ovrRenderer_Create(&appState.Renderer, &java, appState.UseMultiview);
-#endif
+    appState.vroRenderer = appThread->vroRenderer;
+    appState.driver = appThread->driver;
+
+    jclass viewCls = java.Env->GetObjectClass(appThread->view);
+    jmethodID drawFrameMethod = java.Env->GetMethodID(viewCls, "onDrawFrame", "()V");
 
     const double startTime = GetTimeInSeconds();
 
@@ -2192,54 +1378,11 @@ void* AppThreadFunction(void* parm) {
 
         ovrApp_HandleInput(&appState);
 
+        // Invoke the frame listeners on the Java side
+        java.Env->CallVoidMethod(appThread->view, drawFrameMethod);
+
         if (appState.Ovr == NULL) {
             continue;
-        }
-
-        // Create the scene if not yet created.
-        // The scene is created here to be able to show a loading icon.
-        if (!ovrScene_IsCreated(&appState.Scene)) {
-#if MULTI_THREADED
-            // Show a loading icon.
-            ovrRenderThread_Submit(
-                &appState.RenderThread,
-                appState.Ovr,
-                RENDER_LOADING_ICON,
-                appState.FrameIndex,
-                appState.DisplayTime,
-                appState.SwapInterval,
-                NULL,
-                NULL,
-                NULL);
-#else
-            // Show a loading icon.
-            int frameFlags = 0;
-            frameFlags |= VRAPI_FRAME_FLAG_FLUSH;
-
-            ovrLayerProjection2 blackLayer = vrapi_DefaultLayerBlackProjection2();
-            blackLayer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-
-            ovrLayerLoadingIcon2 iconLayer = vrapi_DefaultLayerLoadingIcon2();
-            iconLayer.Header.Flags |= VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-
-            const ovrLayerHeader2* layers[] = {
-                    &blackLayer.Header,
-                    &iconLayer.Header,
-            };
-
-            ovrSubmitFrameDescription2 frameDesc = {0};
-            frameDesc.Flags = frameFlags;
-            frameDesc.SwapInterval = 1;
-            frameDesc.FrameIndex = appState.FrameIndex;
-            frameDesc.DisplayTime = appState.DisplayTime;
-            frameDesc.LayerCount = 2;
-            frameDesc.Layers = layers;
-
-            vrapi_SubmitFrame2(appState.Ovr, &frameDesc);
-#endif
-
-            // Create the scene.
-            ovrScene_Create(&appState.Scene, appState.UseMultiview);
         }
 
         // This is the only place the frame index is incremented, right before
@@ -2261,64 +1404,52 @@ void* AppThreadFunction(void* parm) {
         // display time.
         ovrSimulation_Advance(&appState.Simulation, predictedDisplayTime - startTime);
 
-#if MULTI_THREADED
-        // Render the eye images on a separate thread.
-        ovrRenderThread_Submit(
-            &appState.RenderThread,
-            appState.Ovr,
-            RENDER_FRAME,
-            appState.FrameIndex,
-            appState.DisplayTime,
-            appState.SwapInterval,
-            &appState.Scene,
-            &appState.Simulation,
-            &tracking);
-#else
         // Render eye images and setup the primary layer using ovrTracking2.
-        const ovrLayerProjection2 worldLayer = ovrRenderer_RenderFrame(
+        ovrLayerProjection2 worldLayer;
+        ovrLayerProjection2 hudLayer;
+        ovrRenderer_RenderFrame(
                 &appState.Renderer,
                 &appState.Java,
-                &appState.Scene,
+                appState.vroRenderer,
+                appState.driver,
+                appState.FrameIndex,
                 &appState.Simulation,
-                &tracking,
-                appState.Ovr);
+                &tracking, appState.Ovr, &worldLayer, &hudLayer);
 
-        const ovrLayerHeader2* layers[] = {&worldLayer.Header};
+        const ovrLayerHeader2 * layers[] = {
+                &worldLayer.Header,
+                &hudLayer.Header
+        };
 
-        ovrSubmitFrameDescription2 frameDesc = {0};
+        ovrSubmitFrameDescription2 frameDesc = {};
         frameDesc.Flags = 0;
         frameDesc.SwapInterval = appState.SwapInterval;
         frameDesc.FrameIndex = appState.FrameIndex;
         frameDesc.DisplayTime = appState.DisplayTime;
-        frameDesc.LayerCount = 1;
+        frameDesc.LayerCount = 2;
         frameDesc.Layers = layers;
 
         // Hand over the eye images to the time warp.
-        vrapi_SubmitFrame2(appState.Ovr, &frameDesc);
-#endif
+        vrapi_SubmitFrame2( appState.Ovr, &frameDesc );
     }
 
-#if MULTI_THREADED
-    ovrRenderThread_Destroy(&appState.RenderThread);
-#else
     ovrRenderer_Destroy(&appState.Renderer);
-#endif
-
-    ovrScene_Destroy(&appState.Scene);
     ovrEgl_DestroyContext(&appState.Egl);
-
     vrapi_Shutdown();
 
-    (*java.Vm)->DetachCurrentThread(java.Vm);
-
+    java.Vm->DetachCurrentThread();
     return NULL;
 }
 
-static void ovrAppThread_Create(ovrAppThread* appThread, JNIEnv* env, jobject activityObject) {
-    (*env)->GetJavaVM(env, &appThread->JavaVm);
-    appThread->ActivityObject = (*env)->NewGlobalRef(env, activityObject);
+static void ovrAppThread_Create(ovrAppThread* appThread, JNIEnv* env, jobject activityObject, jobject viewObject,
+                                std::shared_ptr<VRORenderer> renderer, std::shared_ptr<VRODriverOpenGLAndroid> driver) {
+    env->GetJavaVM( &appThread->JavaVm );
+    appThread->ActivityObject = env->NewGlobalRef(activityObject);
     appThread->Thread = 0;
     appThread->NativeWindow = NULL;
+    appThread->view = env->NewGlobalRef(viewObject);
+    appThread->vroRenderer = renderer;
+    appThread->driver = driver;
     ovrMessageQueue_Create(&appThread->MessageQueue);
 
     const int createErr = pthread_create(&appThread->Thread, NULL, AppThreadFunction, appThread);
@@ -2329,7 +1460,10 @@ static void ovrAppThread_Create(ovrAppThread* appThread, JNIEnv* env, jobject ac
 
 static void ovrAppThread_Destroy(ovrAppThread* appThread, JNIEnv* env) {
     pthread_join(appThread->Thread, NULL);
-    (*env)->DeleteGlobalRef(env, appThread->ActivityObject);
+    env->DeleteGlobalRef( appThread->ActivityObject );
+    env->DeleteGlobalRef( appThread->view );
+    appThread->vroRenderer.reset();
+    appThread->driver.reset();
     ovrMessageQueue_Destroy(&appThread->MessageQueue);
 }
 
@@ -2341,68 +1475,69 @@ Activity lifecycle
 ================================================================================
 */
 
-JNIEXPORT jlong JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onCreate(JNIEnv* env, jobject obj, jobject activity) {
-    ALOGV("    GLES3JNILib::onCreate()");
+VROSceneRendererOVR::VROSceneRendererOVR(VRORendererConfiguration config,
+                                                 std::shared_ptr<gvr::AudioApi> gvrAudio,
+                                                 jobject view, jobject activity, JNIEnv *env) {
+    _driver = std::make_shared<VRODriverOpenGLAndroidOVR>(gvrAudio);
+    _renderer = std::make_shared<VRORenderer>(config, std::make_shared<VROInputControllerOVR>(_driver));
 
-    ovrAppThread* appThread = (ovrAppThread*)malloc(sizeof(ovrAppThread));
-    ovrAppThread_Create(appThread, env, activity);
+    ALOGV( "    GLES3JNILib::onCreate()" );
 
-    ovrMessageQueue_Enable(&appThread->MessageQueue, true);
+    _appThread = (ovrAppThread *) malloc( sizeof( ovrAppThread ) );
+    ovrAppThread_Create( _appThread, env, activity, view, _renderer, _driver );
+
+    ovrMessageQueue_Enable( &_appThread->MessageQueue, true );
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_CREATE, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-
-    return (jlong)((size_t)appThread);
+    ovrMessage_Init( &message, MESSAGE_ON_CREATE, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &_appThread->MessageQueue, &message );
 }
 
-JNIEXPORT void JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onStart(JNIEnv* env, jobject obj, jlong handle) {
-    ALOGV("    GLES3JNILib::onStart()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
-    ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_START, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+VROSceneRendererOVR::~VROSceneRendererOVR() {
 }
 
-JNIEXPORT void JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onResume(JNIEnv* env, jobject obj, jlong handle) {
-    ALOGV("    GLES3JNILib::onResume()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onStart() {
+    ALOGV( "    GLES3JNILib::onStart()" );
+    ovrAppThread * appThread = _appThread;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_RESUME, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+    ovrMessage_Init( &message, MESSAGE_ON_START, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 }
 
-JNIEXPORT void JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onPause(JNIEnv* env, jobject obj, jlong handle) {
-    ALOGV("    GLES3JNILib::onPause()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onResume() {
+    ALOGV( "    GLES3JNILib::onResume()" );
+    ovrAppThread * appThread = _appThread;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_PAUSE, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+    ovrMessage_Init( &message, MESSAGE_ON_RESUME, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 }
 
-JNIEXPORT void JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onStop(JNIEnv* env, jobject obj, jlong handle) {
-    ALOGV("    GLES3JNILib::onStop()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onPause() {
+    ALOGV( "    GLES3JNILib::onPause()" );
+    ovrAppThread * appThread = _appThread;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_STOP, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+    ovrMessage_Init( &message, MESSAGE_ON_PAUSE, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 }
 
-JNIEXPORT void JNICALL
-Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onDestroy(JNIEnv* env, jobject obj, jlong handle) {
-    ALOGV("    GLES3JNILib::onDestroy()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onStop() {
+    ALOGV( "    GLES3JNILib::onStop()" );
+    ovrAppThread * appThread = _appThread;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_DESTROY, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-    ovrMessageQueue_Enable(&appThread->MessageQueue, false);
+    ovrMessage_Init( &message, MESSAGE_ON_STOP, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
+}
 
-    ovrAppThread_Destroy(appThread, env);
-    free(appThread);
+void VROSceneRendererOVR::onDestroy(){
+    ALOGV( "    GLES3JNILib::onDestroy()" );
+    JNIEnv *env = VROPlatformGetJNIEnv();
+    ovrAppThread * appThread = _appThread;
+    ovrMessage message;
+    ovrMessage_Init( &message, MESSAGE_ON_DESTROY, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
+    ovrMessageQueue_Enable( &appThread->MessageQueue, false );
+
+    ovrAppThread_Destroy( appThread, env );
+    free( appThread );
 }
 
 /*
@@ -2412,82 +1547,81 @@ Surface lifecycle
 
 ================================================================================
 */
+void VROSceneRendererOVR::onSurfaceCreated(jobject surface) {
+    ALOGV( "    GLES3JNILib::onSurfaceCreated()" );
+    ovrAppThread * appThread = _appThread;
 
-JNIEXPORT void JNICALL Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onSurfaceCreated(
-        JNIEnv* env,
-        jobject obj,
-        jlong handle,
-        jobject surface) {
-    ALOGV("    GLES3JNILib::onSurfaceCreated()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+    JNIEnv *env = VROPlatformGetJNIEnv();
 
-    ANativeWindow* newNativeWindow = ANativeWindow_fromSurface(env, surface);
-    if (ANativeWindow_getWidth(newNativeWindow) < ANativeWindow_getHeight(newNativeWindow)) {
+    ANativeWindow * newNativeWindow = ANativeWindow_fromSurface( env, surface );
+    if ( ANativeWindow_getWidth( newNativeWindow ) < ANativeWindow_getHeight( newNativeWindow ) )
+    {
         // An app that is relaunched after pressing the home button gets an initial surface with
         // the wrong orientation even though android:screenOrientation="landscape" is set in the
         // manifest. The choreographer callback will also never be called for this surface because
         // the surface is immediately replaced with a new surface with the correct orientation.
-        ALOGE("        Surface not in landscape mode!");
+        ALOGE( "        Surface not in landscape mode!" );
     }
 
-    ALOGV("        NativeWindow = ANativeWindow_fromSurface( env, surface )");
+    ALOGV( "        NativeWindow = ANativeWindow_fromSurface( env, surface )" );
     appThread->NativeWindow = newNativeWindow;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED);
-    ovrMessage_SetPointerParm(&message, 0, appThread->NativeWindow);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+    ovrMessage_Init( &message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED );
+    ovrMessage_SetPointerParm( &message, 0, appThread->NativeWindow );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 }
 
-JNIEXPORT void JNICALL Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onSurfaceChanged(
-        JNIEnv* env,
-        jobject obj,
-        jlong handle,
-        jobject surface) {
-    ALOGV("    GLES3JNILib::onSurfaceChanged()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onSurfaceChanged(jobject surface, VRO_INT width, VRO_INT height) {
+    ALOGV( "    GLES3JNILib::onSurfaceChanged()" );
+    ovrAppThread * appThread = _appThread;
 
-    ANativeWindow* newNativeWindow = ANativeWindow_fromSurface(env, surface);
-    if (ANativeWindow_getWidth(newNativeWindow) < ANativeWindow_getHeight(newNativeWindow)) {
+    JNIEnv *env = VROPlatformGetJNIEnv();
+
+    ANativeWindow * newNativeWindow = ANativeWindow_fromSurface( env, surface );
+    if ( ANativeWindow_getWidth( newNativeWindow ) < ANativeWindow_getHeight( newNativeWindow ) )
+    {
         // An app that is relaunched after pressing the home button gets an initial surface with
         // the wrong orientation even though android:screenOrientation="landscape" is set in the
         // manifest. The choreographer callback will also never be called for this surface because
         // the surface is immediately replaced with a new surface with the correct orientation.
-        ALOGE("        Surface not in landscape mode!");
+        ALOGE( "        Surface not in landscape mode!" );
     }
 
-    if (newNativeWindow != appThread->NativeWindow) {
-        if (appThread->NativeWindow != NULL) {
+    if ( newNativeWindow != appThread->NativeWindow )
+    {
+        if ( appThread->NativeWindow != NULL )
+        {
             ovrMessage message;
-            ovrMessage_Init(&message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED);
-            ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-            ALOGV("        ANativeWindow_release( NativeWindow )");
-            ANativeWindow_release(appThread->NativeWindow);
+            ovrMessage_Init( &message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED );
+            ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
+            ALOGV( "        ANativeWindow_release( NativeWindow )" );
+            ANativeWindow_release( appThread->NativeWindow );
             appThread->NativeWindow = NULL;
         }
-        if (newNativeWindow != NULL) {
-            ALOGV("        NativeWindow = ANativeWindow_fromSurface( env, surface )");
+        if ( newNativeWindow != NULL )
+        {
+            ALOGV( "        NativeWindow = ANativeWindow_fromSurface( env, surface )" );
             appThread->NativeWindow = newNativeWindow;
             ovrMessage message;
-            ovrMessage_Init(&message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED);
-            ovrMessage_SetPointerParm(&message, 0, appThread->NativeWindow);
-            ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+            ovrMessage_Init( &message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED );
+            ovrMessage_SetPointerParm( &message, 0, appThread->NativeWindow );
+            ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
         }
-    } else if (newNativeWindow != NULL) {
-        ANativeWindow_release(newNativeWindow);
+    }
+    else if ( newNativeWindow != NULL )
+    {
+        ANativeWindow_release( newNativeWindow );
     }
 }
 
-JNIEXPORT void JNICALL Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onSurfaceDestroyed(
-        JNIEnv* env,
-        jobject obj,
-        jlong handle) {
-    ALOGV("    GLES3JNILib::onSurfaceDestroyed()");
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
+void VROSceneRendererOVR::onSurfaceDestroyed() {
+    ALOGV( "    GLES3JNILib::onSurfaceDestroyed()" );
+    ovrAppThread * appThread = _appThread;
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-    ALOGV("        ANativeWindow_release( NativeWindow )");
-    ANativeWindow_release(appThread->NativeWindow);
+    ovrMessage_Init( &message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED );
+    ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
+    ALOGV( "        ANativeWindow_release( NativeWindow )" );
+    ANativeWindow_release( appThread->NativeWindow );
     appThread->NativeWindow = NULL;
 }
 
@@ -2499,19 +1633,22 @@ Input
 ================================================================================
 */
 
-JNIEXPORT void JNICALL Java_com_oculus_sdk_vrcubeworldsv_GLES3JNILib_onKeyEvent(
-        JNIEnv* env,
-        jobject obj,
-        jlong handle,
-        int keyCode,
-        int action) {
-    if (action == AKEY_EVENT_ACTION_UP) {
-        ALOGV("    GLES3JNILib::onKeyEvent( %d, %d )", keyCode, action);
+void VROSceneRendererOVR::onKeyEvent(int keyCode, int action) {
+    if ( action == AKEY_EVENT_ACTION_UP )
+    {
+        ALOGV( "    GLES3JNILib::onKeyEvent( %d, %d )", keyCode, action );
     }
-    ovrAppThread* appThread = (ovrAppThread*)((size_t)handle);
     ovrMessage message;
-    ovrMessage_Init(&message, MESSAGE_ON_KEY_EVENT, MQ_WAIT_NONE);
-    ovrMessage_SetIntegerParm(&message, 0, keyCode);
-    ovrMessage_SetIntegerParm(&message, 1, action);
-    ovrMessageQueue_PostMessage(&appThread->MessageQueue, &message);
+    ovrMessage_Init( &message, MESSAGE_ON_KEY_EVENT, MQ_WAIT_NONE );
+    ovrMessage_SetIntegerParm( &message, 0, keyCode );
+    ovrMessage_SetIntegerParm( &message, 1, action );
+    ovrMessageQueue_PostMessage( &_appThread->MessageQueue, &message );
 }
+
+void VROSceneRendererOVR::onTouchEvent(int action, float x, float y) {
+    // No-op
+}
+
+void VROSceneRendererOVR::recenterTracking() {
+    // No-op
+};
