@@ -46,6 +46,7 @@
 #include "VROAllocationTracker.h"
 #include "VROInputControllerOVR.h"
 #include <VROTime.h>
+#include <VrApi_Types.h>
 
 #pragma mark - OVR System
 
@@ -682,7 +683,7 @@ static void ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const
         ovrFramebuffer_Create(
                 &renderer->FrameBuffer[eye],
                 useMultiview,
-                VRAPI_TEXTURE_FORMAT_8888_sRGB,
+                GL_RGBA8,
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH),
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT),
                 NUM_MULTI_SAMPLES);
@@ -690,7 +691,7 @@ static void ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const
         ovrFramebuffer_Create(
                 &renderer->HUDFrameBuffer[eye],
                 useMultiview,
-                VRAPI_TEXTURE_FORMAT_8888_sRGB,
+                GL_RGBA8,
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH),
                 vrapi_GetSystemPropertyInt(java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT),
                 NUM_MULTI_SAMPLES);
@@ -775,16 +776,12 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         eyeFromHeadMatrix[eye] = toMatrix4f(eyeOffsetMatrix);
     }
 
-    // We use our projection matrix because the one computed by OVR appears to be identical for
-    // left and right, but with fixed NCP and FCP. Our projection uses the correct NCP and FCP.
-    // VIRO TODO: Is this still the case?
     ovrFramebuffer *leftFB = &rendererOVR->FrameBuffer[0];
     VROViewport leftViewport(0, 0, leftFB->Width, leftFB->Height);
     float fovX = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X );
     float fovY = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y );
     VROFieldOfView fov(fovX / 2.0, fovX / 2.0, fovY / 2.0, fovY / 2.0);
-
-    VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, renderer->getFarClippingPlane());
+    VROMatrix4f projection = toMatrix4f(updatedTracking.Eye[0].ProjectionMatrix);
     renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, projection, driver);
 
     // Render the scene to the textures in the scene layer
@@ -823,7 +820,7 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         // left and right, but with fixed NCP and FCP. Our projection uses the correct NCP and FCP.
         renderer->renderEye(eyeType,
                             viroHeadView,
-                            projection,
+                            toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix),
                             viewport, driver);
 
         // Explicitly clear the border texels to black when GL_CLAMP_TO_BORDER is not available.
