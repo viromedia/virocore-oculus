@@ -59,71 +59,20 @@ public class ViroNativeActivity extends AppCompatActivity {
 
         ViroView.NATIVE_TESTING_MODE = true;
 
-        if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("GVR")) {
-            mViroView = new ViroViewGVR(this, new ViroViewGVR.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
+        mViroView = new ViroViewOVR(this, new ViroViewOVR.StartupListener() {
+            @Override
+            public void onSuccess() {
+                onRendererStart();
+            }
 
-                @Override
-                public void onFailure(ViroViewGVR.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, new Runnable() {
-                @Override
-                public void run() {
-                    Log.e(TAG, "On GVR userRequested exit");
-                }
-            }, config);
-            setContentView(mViroView);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("OVR")) {
-            mViroView = new ViroViewOVR(this, new ViroViewOVR.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewOVR.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-            setContentView(mViroView);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("Scene")) {
-            mViroView = new ViroViewScene(this, new ViroViewScene.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewScene.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-            setContentView(mViroView);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("ARCore")) {
-            mViroView = new ViroViewARCore(this, new ViroViewARCore.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewARCore.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-            setContentView(mViroView);
-
-            ViroViewARCore arView = (ViroViewARCore) mViroView;
-            Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-            arView.setCameraRotation(display.getRotation());
-        }
+            @Override
+            public void onFailure(ViroViewOVR.StartupError error, String errorMessage) {
+                onRendererFailed(error.toString(), errorMessage);
+            }
+        }, config);
+        mViroView.setHDREnabled(true);
+        mViroView.setPBREnabled(true);
+        setContentView(mViroView);
     }
 
     @Override
