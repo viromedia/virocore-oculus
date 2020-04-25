@@ -36,8 +36,6 @@
 #include <vector>
 #include "VROSceneRenderer.h"
 #include "VRODriverOpenGLAndroid.h"
-#include "VROInputControllerCardboard.h"
-#include "VROInputControllerARAndroid.h"
 
 #include "vr/gvr/capi/include/gvr.h"
 #include "vr/gvr/capi/include/gvr_audio.h"
@@ -110,8 +108,6 @@ private:
 
     bool _touchTrackingEnabled;
     bool _vrModeEnabled;
-    std::shared_ptr<VROInputControllerARAndroid> _touchController;
-    std::shared_ptr<VROInputControllerBase>  _cardboardController;
     /*
      Utility methods.
      */

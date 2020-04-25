@@ -29,7 +29,6 @@
 #include "VROSphere.h"
 #include "VROBone.h"
 #include "VRORenderer.h"
-#include "VROInputControllerAR.h"
 #include "VROBillboardConstraint.h"
 #include "VROMatrix4f.h"
 #include "VROBodyIKController.h"

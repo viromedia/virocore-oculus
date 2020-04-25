@@ -34,7 +34,6 @@
 #include <VROTime.h>
 #include <VROProjector.h>
 #include <VROARHitTestResult.h>
-#include <VROInputControllerAR.h>
 
 #include "VRODriverOpenGLAndroid.h"
 #include "VROGVRUtil.h"
@@ -44,9 +43,7 @@
 #include "VRORenderer.h"
 #include "VROSurface.h"
 #include "VRONode.h"
-#include "VROInputControllerCardboard.h"
 #include "VROAllocationTracker.h"
-#include "VROInputControllerARAndroid.h"
 
 static VROVector3f const kZeroVector = VROVector3f();
 
@@ -55,12 +52,10 @@ static VROVector3f const kZeroVector = VROVector3f();
 VROSceneRendererSceneView::VROSceneRendererSceneView(VRORendererConfiguration config,
                                                      std::shared_ptr<gvr::AudioApi> gvrAudio,
                                                      jobject viroViewJNI) {
-
+    perror("VROSceneRendererSceneView is Not Supported");
     _driver = std::make_shared<VRODriverOpenGLAndroid>(gvrAudio);
-
     // instantiate the input controller w/ viewport size (0,0) and update it later.
-    std::shared_ptr<VROInputControllerAR> controller = std::make_shared<VROInputControllerARAndroid>(0, 0, _driver);
-    _renderer = std::make_shared<VRORenderer>(config, controller);
+    _renderer = std::make_shared<VRORenderer>(config, nullptr);
 }
 
 VROSceneRendererSceneView::~VROSceneRendererSceneView() {
@@ -102,35 +97,17 @@ void VROSceneRendererSceneView::onSurfaceChanged(jobject surface, VRO_INT width,
 
     _surfaceSize.width = width;
     _surfaceSize.height = height;
-
-    std::shared_ptr<VROInputControllerARAndroid> inputControllerAR =
-            std::dynamic_pointer_cast<VROInputControllerARAndroid>(_renderer->getInputController());
-    if (inputControllerAR) {
-        inputControllerAR->setViewportSize(width, height);
-    }
 }
 
 void VROSceneRendererSceneView::onTouchEvent(int action, float x, float y) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onTouchEvent(action, x, y);
 }
 
 void VROSceneRendererSceneView::onPinchEvent(int pinchState, float scaleFactor,
                                           float viewportX, float viewportY) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
 }
 
 void VROSceneRendererSceneView::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
                                            float viewportY) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
 }
 
 void VROSceneRendererSceneView::onPause() {

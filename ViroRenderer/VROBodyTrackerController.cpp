@@ -24,7 +24,6 @@
 //  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "VROBodyTrackerController.h"
-#include "VROInputControllerAR.h"
 #include "VROBodyTracker.h"
 #include "VROMatrix4f.h"
 #include "VROBox.h"

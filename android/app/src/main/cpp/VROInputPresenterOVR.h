@@ -45,13 +45,13 @@ public:
 
     void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position) {
         VROInputPresenter::onClick(source, node, clickState, position);
-        if (source==ViroOculus::InputSource::TouchPad && clickState==ClickState::ClickUp){
-            getReticle()->trigger();
-        }
+      //  if (source==ViroOculus::InputSource::TouchPad && clickState==ClickState::ClickUp){
+      //      getReticle()->trigger();
+      //  }
     }
 
     void onGazeHit(int source, std::shared_ptr<VRONode> node, const VROHitTestResult &hit) {
-        VROInputPresenter::onReticleGazeHit(hit);
+        //VROInputPresenter::onReticleGazeHit(hit);
      }
 };
 #endif

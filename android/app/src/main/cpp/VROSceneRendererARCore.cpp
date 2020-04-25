@@ -34,7 +34,6 @@
 #include <VROTime.h>
 #include <VROProjector.h>
 #include <VROARHitTestResult.h>
-#include <VROInputControllerAR.h>
 #include "VROARCamera.h"
 #include "arcore/VROARSessionARCore.h"
 #include "arcore/VROARFrameARCore.h"
@@ -49,9 +48,7 @@
 #include "VROSurface.h"
 #include "VRONode.h"
 #include "VROARScene.h"
-#include "VROInputControllerCardboard.h"
 #include "VROAllocationTracker.h"
-#include "VROInputControllerARAndroid.h"
 
 static VROVector3f const kZeroVector = VROVector3f();
 
@@ -61,16 +58,13 @@ VROSceneRendererARCore::VROSceneRendererARCore(VRORendererConfiguration config,
                                                std::shared_ptr<gvr::AudioApi> gvrAudio) :
     _arcoreInstalled(false),
     _destroyed(false) {
+    perror("VROSceneRendererARCore is Not Supported");
 
     _driver = std::make_shared<VRODriverOpenGLAndroid>(gvrAudio);
     _session = std::make_shared<VROARSessionARCore>(_driver);
 
     // instantiate the input controller w/ viewport size (0,0) and update it later.
-    std::shared_ptr<VROInputControllerAR> controller = std::make_shared<VROInputControllerARAndroid>(0, 0, _driver);
-
-    _renderer = std::make_shared<VRORenderer>(config, controller);
-    controller->setSession(_session);
-
+    _renderer = std::make_shared<VRORenderer>(config, nullptr);
     _pointOfView = std::make_shared<VRONode>();
     _pointOfView->setCamera(std::make_shared<VRONodeCamera>());
     _renderer->setPointOfView(_pointOfView);
@@ -265,36 +259,17 @@ void VROSceneRendererARCore::onSurfaceChanged(jobject surface, VRO_INT width, VR
         _cameraBackground->setWidth(width);
         _cameraBackground->setHeight(height);
     }
-
-    std::shared_ptr<VROInputControllerARAndroid> inputControllerAR =
-            std::dynamic_pointer_cast<VROInputControllerARAndroid>(_renderer->getInputController());
-
-    if (inputControllerAR) {
-        inputControllerAR->setViewportSize(width, height);
-    }
 }
 
 void VROSceneRendererARCore::onTouchEvent(int action, float x, float y) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onTouchEvent(action, x, y);
 }
 
 void VROSceneRendererARCore::onPinchEvent(int pinchState, float scaleFactor,
                                           float viewportX, float viewportY) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
 }
 
 void VROSceneRendererARCore::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
                                            float viewportY) {
-    std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-    std::shared_ptr<VROInputControllerARAndroid> arTouchController
-            = std::dynamic_pointer_cast<VROInputControllerARAndroid>(baseController);
-    arTouchController->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
 }
 
 void VROSceneRendererARCore::onPause() {

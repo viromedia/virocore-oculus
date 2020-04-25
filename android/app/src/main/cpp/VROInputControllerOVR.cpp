@@ -29,19 +29,19 @@ void VROInputControllerOVR::handleOVRTouchEvent(int touchAction, float posX, flo
     VROEventDelegate::TouchState action;
     if ( touchAction == AMOTION_EVENT_ACTION_UP){
         action = VROEventDelegate::TouchState::TouchUp;
-        VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickUp);
+      //  VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickUp);
         updateSwipeGesture(_touchDownLocationStart, VROVector3f(posX, posY, 0));
     } else if ( touchAction == AMOTION_EVENT_ACTION_DOWN){
         action = VROEventDelegate::TouchState::TouchDown;
         _touchDownLocationStart = VROVector3f(posX, posY, 0);
-        VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickDown);
+      //  VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickDown);
     }  else if ( touchAction == AMOTION_EVENT_ACTION_MOVE){
         action = VROEventDelegate::TouchState::TouchDownMove;
     } else {
         return;
     }
 
-    VROInputControllerBase::onTouchpadEvent(ViroOculus::InputSource::TouchPad, action, posX, posY);
+    //VROInputControllerBase::onTouchpadEvent(ViroOculus::InputSource::TouchPad, action, posX, posY);
 }
 
 void VROInputControllerOVR::updateSwipeGesture(VROVector3f start, VROVector3f end){
@@ -62,14 +62,14 @@ void VROInputControllerOVR::updateSwipeGesture(VROVector3f start, VROVector3f en
             swipeState = VROEventDelegate::SwipeState::SwipeUp;
         }
     }
-    VROInputControllerBase::onSwipe(ViroOculus::InputSource::TouchPad, swipeState);
+  //  VROInputControllerBase::onSwipe(ViroOculus::InputSource::TouchPad, swipeState);
 }
 
 void VROInputControllerOVR::handleOVRKeyEvent(int keyCode, int action){
     VROEventDelegate::ClickState state = action == AKEY_EVENT_ACTION_DOWN ?
                                          VROEventDelegate::ClickState::ClickDown :  VROEventDelegate::ClickState::ClickUp;
     if (keyCode == AKEYCODE_BACK ) {
-        VROInputControllerBase::onButtonEvent(ViroOculus::BackButton, state);
+    //    VROInputControllerBase::onButtonEvent(ViroOculus::BackButton, state);
     }
 }
 
@@ -86,8 +86,8 @@ void VROInputControllerOVR::onProcess(const VROCamera &camera) {
     VROInputControllerBase::updateHitNode(camera, camera.getPosition(), controllerForward);
 
     // Process orientation and update delegates
-    VROInputControllerBase::onMove(ViroOculus::InputSource::Controller, camera.getPosition(), rotation, controllerForward);
-    VROInputControllerBase::processGazeEvent(ViroOculus::InputSource::Controller);
-
+ //   VROInputControllerBase::onMove(ViroOculus::InputSource::Controller, camera.getPosition(), rotation, controllerForward);
+  //  VROInputControllerBase::processGazeEvent(ViroOculus::InputSource::Controller);
+//
     notifyCameraTransform(camera);
 }

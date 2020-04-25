@@ -53,8 +53,6 @@ add_library( # Sets the name of the library.
              ${VIRO_ANDROID_SRC}/VROAVPlayer.cpp
              ${VIRO_ANDROID_SRC}/VROVideoTextureAVP.cpp
              ${VIRO_ANDROID_SRC}/VROTypefaceAndroid.cpp
-             ${VIRO_ANDROID_SRC}/VROInputControllerDaydream.cpp
-             ${VIRO_ANDROID_SRC}/VROInputControllerCardboard.cpp
              ${VIRO_ANDROID_SRC}/VROInputControllerOVR.cpp
              ${VIRO_ANDROID_SRC}/VROAVRecorderAndroid.cpp
              ${VIRO_ANDROID_SRC}/VROTextureReader.cpp
@@ -213,9 +211,7 @@ add_library( # Sets the name of the library.
              ${VIRO_RENDERER_SRC}/VROARConstraintMatcher.cpp
              ${VIRO_RENDERER_SRC}/VROARDeclarativeSession.cpp
              ${VIRO_RENDERER_SRC}/VROARImperativeSession.cpp
-             ${VIRO_RENDERER_SRC}/VROInputControllerAR.cpp
              ${VIRO_RENDERER_SRC}/VROARShadow.cpp
-             ${VIRO_ANDROID_SRC}/VROInputControllerARAndroid.cpp
              ${VIRO_ANDROID_SRC}/VROSceneRendererARCore.cpp
              ${VIRO_ANDROID_SRC}/arcore/VROARSessionARCore.cpp
              ${VIRO_ANDROID_SRC}/arcore/VROARFrameARCore.cpp

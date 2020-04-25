@@ -41,8 +41,6 @@
 #include "VROSceneController.h"
 #include "VRORenderDelegate.h"
 #include "VROReticle.h"
-#include "VROInputControllerDaydream.h"
-#include "VROInputControllerCardboard.h"
 #include "VROAllocationTracker.h"
 static const uint64_t kPredictionTimeWithoutVsyncNanos = 50000000;
 
@@ -54,24 +52,14 @@ VROSceneRendererGVR::VROSceneRendererGVR(VRORendererConfiguration config,
     _gvr(gvr::GvrApi::WrapNonOwned(gvr_context)),
     _sceneViewport(_gvr->CreateBufferViewport()),
     _vrModeEnabled(true) {
+    perror("VROSceneRendererGVR is Not Supported");
 
     _driver = std::make_shared<VRODriverOpenGLAndroidGVR>(gvrAudio);
 
     // Create corresponding controllers - cardboard, or daydream if supported.
     _viewerType = _gvr->GetViewerType();
-
-    if (_viewerType == GVR_VIEWER_TYPE_DAYDREAM) {
-        _cardboardController = std::make_shared<VROInputControllerDaydream>(gvr_context, _driver);
-    } else if (_viewerType == GVR_VIEWER_TYPE_CARDBOARD){
-        _cardboardController = std::make_shared<VROInputControllerCardboard>(_driver);
-        _touchController =  std::make_shared<VROInputControllerARAndroid>(0, 0, _driver);
-    } else {
-        perror("Unrecognized Viewer type! Falling back to Cardboard Controller as default.");
-        _cardboardController = std::make_shared<VROInputControllerCardboard>(_driver);
-    }
-
     // Create renderer and attach the controller to it.
-    _renderer = std::make_shared<VRORenderer>(config, _cardboardController);
+    _renderer = std::make_shared<VRORenderer>(config, nullptr);
 }
 
 VROSceneRendererGVR::~VROSceneRendererGVR() {
@@ -229,7 +217,7 @@ void VROSceneRendererGVR::renderMono(VROMatrix4f &headView) {
                          rect.right - rect.left,
                          rect.top   - rect.bottom);
 
-    _touchController->setViewportSize((float)viewport.getWidth(), (float)viewport.getHeight());
+//    _touchController->setViewportSize((float)viewport.getWidth(), (float)viewport.getHeight());
 
     VROFieldOfView fov = _renderer->computeUserFieldOfView(viewport.getWidth(), viewport.getHeight());
     VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, _renderer->getFarClippingPlane());
@@ -249,16 +237,6 @@ void VROSceneRendererGVR::onSurfaceChanged(jobject surface, VRO_INT width, VRO_I
 }
 
 void VROSceneRendererGVR::onTouchEvent(int action, float x, float y) {
-    if (_viewerType == GVR_VIEWER_TYPE_CARDBOARD) {
-        if(!_vrModeEnabled && _touchController) {
-            _touchController->onTouchEvent(action, x, y);
-        } else {
-            std::shared_ptr<VROInputControllerBase> baseController = _renderer->getInputController();
-            std::shared_ptr<VROInputControllerCardboard> cardboardController
-                    = std::dynamic_pointer_cast<VROInputControllerCardboard>(_cardboardController);
-            cardboardController->updateScreenTouch(action);
-        }
-    }
 }
 
 void VROSceneRendererGVR::onPause() {
@@ -325,16 +303,10 @@ gvr::Sizei VROSceneRendererGVR::halfPixelCount(const gvr::Sizei& in) {
 
 void VROSceneRendererGVR::onPinchEvent(int pinchState, float scaleFactor,
                                           float viewportX, float viewportY) {
-    if(!_vrModeEnabled && _touchController) {
-        _touchController->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
-    }
 }
 
 void VROSceneRendererGVR::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
                                            float viewportY) {
-    if (!_vrModeEnabled && _touchController) {
-        _touchController->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
-    }
 }
 
 void VROSceneRendererGVR::extractViewParameters(gvr::BufferViewport &viewport,
@@ -349,10 +321,5 @@ void VROSceneRendererGVR::extractViewParameters(gvr::BufferViewport &viewport,
 }
 
 void VROSceneRendererGVR::setVRModeEnabled(bool enabled) {
-    _vrModeEnabled = enabled;
-    if(_vrModeEnabled) {
-        _renderer->setInputController(_cardboardController);
-    } else {
-        _renderer->setInputController(_touchController);
-    }
+   //No-op
 }
