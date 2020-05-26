@@ -34,6 +34,7 @@
 #include <map>
 #include "VROVector3f.h"
 #include "VROHitTestResult.h"
+#include "VROInputType.h"
 
 #include <limits>
 class VROARHitTestResult;
@@ -56,20 +57,17 @@ public:
      Do Not change the Enum Values!!! Simply add additional event types as need be.
      */
     enum EventAction {
-        OnHover = 1,
-        OnClick = 2,
-        OnTouch = 3,
-        OnMove = 4,
+        OnClick = 1,
+        OnHover = 2,
+        OnMove = 3,
+        OnThumbStick = 4,
         OnControllerStatus = 5,
-        OnSwipe = 6,
-        OnScroll = 7,
-        OnDrag = 8,
-        OnFuse = 9,
-        OnPinch = 10,
-        OnRotate = 11,
-        OnCameraARHitTest = 12,
-        OnARPointCloudUpdate = 13,
-        OnCameraTransformUpdate = 14,
+        OnCameraTransformUpdate = 6,
+
+        OnPinch = 99,
+        OnDrag = 100,
+        OnRotate = 200,
+        OnFuse = 300,
     };
 
     /*
@@ -81,6 +79,47 @@ public:
         Clicked = 3
     };
 
+    //////////
+
+
+    struct ButtonEvent {
+        int deviceId;
+        int source;
+        ClickState state;
+        VROVector3f intersecPos;
+
+        // Node the click event is performed on?
+        std::shared_ptr<VRONode> hitResultNode;
+    };
+
+    struct HoverEvent {
+        int deviceId;
+        int source;
+        bool isHovering;
+        VROVector3f intersecPos;
+
+        // Node the click event is performed on?
+        std::shared_ptr<VRONode> onHoveredNode;
+        std::shared_ptr<VRONode> offHoveredNode;
+    };
+
+    struct MoveEvent {
+        int deviceId;
+        int source;
+        VROVector3f pos;
+        VROQuaternion rot;
+    };
+
+    struct ThumbStickEvent {
+        int deviceId;
+        int source;
+        bool isPressed;
+        VROVector3f axisLocation;
+    };
+
+
+
+    /////////
     /*
      TouchState enum describing the OnTouch Event action.
      */
@@ -131,24 +170,16 @@ public:
         Error = 5
     };
 
+
     // Disable all event callbacks by default
     VROEventDelegate() {
+        _enabledEventMap[VROEventDelegate::EventAction::OnMove] = false;                 // OVR
+        _enabledEventMap[VROEventDelegate::EventAction::OnClick] = false;                // OVR
+        _enabledEventMap[VROEventDelegate::EventAction::OnThumbStick] = false;                // OVR
+        _enabledEventMap[VROEventDelegate::EventAction::OnControllerStatus] = false;     // OVR
+        _enabledEventMap[VROEventDelegate::EventAction::OnCameraTransformUpdate] = false; // TODO
         _enabledEventMap[VROEventDelegate::EventAction::OnHover] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnClick] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnTouch] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnMove] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnControllerStatus] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnSwipe] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnScroll] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnDrag] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnFuse] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnPinch] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnRotate] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnCameraARHitTest] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnARPointCloudUpdate] = false;
-        _enabledEventMap[VROEventDelegate::EventAction::OnCameraTransformUpdate] = false;
     }
-
     /*
      Informs the renderer to enable / disable the triggering of
      specific EventSource delegate callbacks.
@@ -160,6 +191,28 @@ public:
     bool isEventEnabled(VROEventDelegate::EventAction type) {
         return _enabledEventMap[type];
     }
+
+    // Can represent Events from different DeviceIDs, AND sources
+    // Can be triggered on Nodes
+    virtual void onButtonEvent(std::vector<ButtonEvent> &events) {
+        //No-op
+    }
+
+    // Can represent Events from different DeviceIDs, not sources
+    virtual void onMove(std::vector<MoveEvent> &events) {
+        //No-op
+    }
+
+    // Can represent Events from different DeviceIDs, not sources
+    // Can be triggered on Nodes.
+    virtual void onHover(std::vector<HoverEvent> &events) {
+        //No-op
+    }
+
+    virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events) {
+        //No-op
+    }
+
 
     /*
      Delegate events triggered by the VROInputControllerBase.

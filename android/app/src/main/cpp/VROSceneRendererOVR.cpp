@@ -122,7 +122,8 @@ typedef void(GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(
 static const int CPU_LEVEL = 2;
 static const int GPU_LEVEL = 3;
 static const int NUM_MULTI_SAMPLES = 4;
-
+static const int OVR_RIGHT_HANDED = 536870915;
+static const int OVR_LEFT_HANDED = 536870914;
 /*
 ================================================================================
 
@@ -770,6 +771,7 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         ovrFramebuffer *hudFrameBuffer = &rendererOVR->HUDFrameBuffer[rendererOVR->NumBuffers == 1 ? 0 : eye];
         hudLayer->Textures[eye].ColorSwapChain = hudFrameBuffer->ColorTextureSwapChain;
         hudLayer->Textures[eye].SwapChainIndex = hudFrameBuffer->TextureSwapChainIndex;
+        hudLayer->Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&updatedTracking.Eye[eye].ProjectionMatrix);
 
         const float eyeOffset = ( eye ? -0.5f : 0.5f ) * interpupillaryDistance;
         const ovrMatrix4f eyeOffsetMatrix = ovrMatrix4f_CreateTranslation( eyeOffset, 0.0f, 0.0f );
@@ -843,7 +845,7 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         GL( glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) );
 
         VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
-        renderer->renderHUD(eyeType, eyeFromHeadMatrix[eye], projection, driver);
+        renderer->renderHUD(eyeType, eyeFromHeadMatrix[eye], toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix), driver);
 
         ovrRenderer_clearBorder(frameBuffer);
         ovrFramebuffer_Resolve(frameBuffer);
@@ -967,10 +969,10 @@ static void ovrApp_HandleVrModeChanges(ovrApp* app) {
     }
 }
 
-// VIRO TODO - Integrate our own VROInputControllerBase
-static void ovrApp_HandleInput(ovrApp* app) {
+static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
     bool backButtonDownThisFrame = false;
 
+    std::vector<VROInputControllerOVR::ControllerSnapShot> snapShots;
     for (int i = 0;; i++) {
         ovrInputCapabilityHeader cap;
         ovrResult result = vrapi_EnumerateInputDevices(app->Ovr, i, &cap);
@@ -978,31 +980,55 @@ static void ovrApp_HandleInput(ovrApp* app) {
             break;
         }
 
-        if (cap.Type == ovrControllerType_Headset) {
-            ovrInputStateHeadset headsetInputState;
-            headsetInputState.Header.ControllerType = ovrControllerType_Headset;
-            result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &headsetInputState.Header);
-            if (result == ovrSuccess) {
-                backButtonDownThisFrame |= headsetInputState.Buttons & ovrButton_Back;
-            }
-        } else if (cap.Type == ovrControllerType_TrackedRemote) {
-            ovrInputStateTrackedRemote trackedRemoteState;
-            trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
-            result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &trackedRemoteState.Header);
-            if (result == ovrSuccess) {
-                backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
-                backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_B;
-                backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Y;
-            }
-        } else if (cap.Type == ovrControllerType_Gamepad) {
-            ovrInputStateGamepad gamepadState;
-            gamepadState.Header.ControllerType = ovrControllerType_Gamepad;
-            result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &gamepadState.Header);
-            if (result == ovrSuccess) {
-                backButtonDownThisFrame |= gamepadState.Buttons & ovrButton_Back;
-            }
+        if (cap.Type != ovrControllerType_TrackedRemote) {
+            pwarn("Unsupported Controller detected for ViroOculus!");
+            return;
         }
+
+        ovrInputStateTrackedRemote trackedRemoteState;
+        trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
+        result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &trackedRemoteState.Header);
+        VROInputControllerOVR::ControllerSnapShot snapShot;
+        snapShot.deviceID = cap.DeviceID;
+        if (result == ovrSuccess) {
+            // Grab the buttons
+            snapShot.buttonAPressed = trackedRemoteState.Buttons & ovrButton_A;
+            snapShot.buttonBPressed = trackedRemoteState.Buttons & ovrButton_B;
+            snapShot.buttonJoyStickPressed = trackedRemoteState.Buttons & ovrButton_Joystick;
+            snapShot.buttonTriggerIndexPressed = trackedRemoteState.Buttons & ovrButton_Trigger;
+            snapShot.buttonTrggerHandPressed = trackedRemoteState.Buttons & ovrButton_GripTrigger;
+            snapShot.triggerHandWeight = trackedRemoteState.GripTrigger;
+            snapShot.triggerIndexWeight = trackedRemoteState.IndexTrigger;
+            snapShot.joyStickAxis = VROVector3f(trackedRemoteState.Joystick.x,
+                                               trackedRemoteState.Joystick.y, 0);
+        } else {
+            continue;
+        }
+        // Because OVR makes us do STUPID SHIT TO GRAB A FUCKING POSITION VALUE.
+        ovrTracking tracking;
+        ovrResult posTrackingResult = vrapi_GetInputTrackingState(app->Ovr,
+                cap.DeviceID, predictedDisplayTime, &tracking);
+        if (posTrackingResult == ovrSuccess) {
+            ovrVector3f pos =  tracking.HeadPose.Pose.Position;
+            const ovrQuatf *orientation =  &tracking.HeadPose.Pose.Orientation;
+            VROMatrix4f mat = toMatrix4f(ovrMatrix4f_CreateFromQuaternion(orientation));
+            VROQuaternion qRot = VROQuaternion(mat);
+            snapShot.position = VROVector3f(pos.x, pos.y, pos.z);
+            snapShot.rotation = qRot;
+        } else {
+            continue;
+        }
+
+        snapShots.push_back(snapShot);
     }
+
+    // Finally report the state
+    std::shared_ptr<VROInputControllerBase> inputControllerBase
+            = app->vroRenderer->getInputController();
+    inputControllerBase->getPresenter()->updateCamera(app->vroRenderer->getCamera());
+    std::shared_ptr<VROInputControllerOVR> inputControllerOvr
+            = std::dynamic_pointer_cast<VROInputControllerOVR>(inputControllerBase);
+    inputControllerOvr->processInput(snapShots);
 
     backButtonDownThisFrame |= app->GamePadBackButtonDown;
 
@@ -1373,8 +1399,6 @@ void* AppThreadFunction(void* parm) {
         // We must read from the event queue with regular frequency.
         ovrApp_HandleVrApiEvents(&appState);
 
-        ovrApp_HandleInput(&appState);
-
         // Invoke the frame listeners on the Java side
         java.Env->CallVoidMethod(appThread->view, drawFrameMethod);
 
@@ -1396,6 +1420,7 @@ void* AppThreadFunction(void* parm) {
                 vrapi_GetPredictedTracking2(appState.Ovr, predictedDisplayTime);
 
         appState.DisplayTime = predictedDisplayTime;
+        ovrApp_HandleInput(&appState, predictedDisplayTime);
 
         // Advance the simulation based on the elapsed time since start of loop till predicted
         // display time.

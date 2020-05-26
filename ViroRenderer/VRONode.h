@@ -698,7 +698,7 @@ public:
 
 #pragma mark - Events
     
-    std::vector<VROHitTestResult> hitTest(const VROCamera &camera, VROVector3f origin, VROVector3f ray,
+    std::vector<VROHitTestResult> hitTest(VROVector3f origin, VROVector3f ray,
                                           bool boundsOnly = false);
     
     void setSelectable(bool selectable) {
@@ -1113,7 +1113,7 @@ private:
     /*
      Hit test helper functions.
      */
-    void hitTest(const VROCamera &camera, VROVector3f origin, VROVector3f ray,
+    void hitTest(VROVector3f origin, VROVector3f ray,
                  bool boundsOnly, std::vector<VROHitTestResult> &results);
     bool hitTestGeometry(VROVector3f origin, VROVector3f ray,
                          VROMatrix4f transform, VROVector3f *intPt);

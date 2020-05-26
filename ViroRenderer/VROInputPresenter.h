@@ -36,7 +36,7 @@
 #include "VROInputType.h"
 #include "VROThreadRestricted.h"
 
-static const float kReticleSizeMultiple = 3;
+static const float kReticleSizeMultiple = 4;
 static const bool kDebugSceneBackgroundDistance = false;
 
 /*
@@ -47,8 +47,8 @@ class VROInputPresenter : public VROEventDelegate, public VROThreadRestricted {
 public:
     
     VROInputPresenter() : VROThreadRestricted(VROThreadName::Renderer) {
-        _reticle = nullptr;
         _rootNode = std::make_shared<VRONode>();
+        _camera = nullptr;
     }
 
     ~VROInputPresenter() {}
@@ -61,110 +61,40 @@ public:
         _eventDelegateWeak = delegate;
     }
 
-    virtual void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position) {
-        passert_thread(__func__);
-        
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnHover)){
-            delegate->onHover(source, node, isHovering, position);
-        }
-    }
-
-    virtual void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position) {
+    virtual void onButtonEvent(std::vector<ButtonEvent> events) {
         passert_thread(__func__);
         
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
         if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnClick)){
-            delegate->onClick(source, node, clickState, position);
+            delegate->onButtonEvent(events);
         }
     }
 
-    virtual void onTouch(int source, std::shared_ptr<VRONode> node, TouchState state, float x, float y){
+    virtual void onMove(std::vector<MoveEvent> events) {
         passert_thread(__func__);
-        
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnTouch)){
-            delegate->onTouch(source, node, state, x, y);
-        }
-    }
-
-    virtual void onMove(int source, std::shared_ptr<VRONode> node,
-                        VROVector3f rotation, VROVector3f position, VROVector3f forwardVec) {
-        passert_thread(__func__);
-        _lastKnownForward = forwardVec;
+       // _lastKnownForward = forwardVec;
 
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
         if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnMove)){
-            delegate->onMove(source, node, rotation, position, forwardVec);
+            delegate->onMove(events);
         }
     }
-
-    virtual void onControllerStatus(int source, ControllerStatus status) {
+    
+    virtual void onHover(std::vector<HoverEvent> &events) {
         passert_thread(__func__);
 
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnControllerStatus)){
-            delegate->onControllerStatus(source, status);
+        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnHover)){
+            delegate->onHover(events);
         }
     }
 
-    virtual void onSwipe(int source, std::shared_ptr<VRONode> node, SwipeState swipeState) {
-        passert_thread(__func__);
-
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnSwipe)){
-            delegate->onSwipe(source, node, swipeState);
-        }
+    std::map<int, std::shared_ptr<VROReticle>> getReticles() {
+        return _reticles;
     }
 
-    virtual void onScroll(int source, std::shared_ptr<VRONode> node, float x, float y) {
-        passert_thread(__func__);
-        
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnScroll)){
-            delegate->onScroll(source, node, x, y);
-        }
-    }
-
-    virtual void onGazeHit(int source, std::shared_ptr<VRONode> node, const VROHitTestResult &hit) {
-        //No-op
-    }
-
-    virtual void onDrag(int source, std::shared_ptr<VRONode> node, VROVector3f newPosition) {
-        passert_thread(__func__);
-        
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnDrag)){
-            delegate->onDrag(source, node, newPosition);
-        }
-    }
-
-    virtual void onFuse(int source, std::shared_ptr<VRONode> node, float timeToFuseRatio) {
-        passert_thread(__func__);
-        if (_reticle == nullptr) {
-            return;
-        }
-
-        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
-        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnFuse)) {
-            delegate->onFuse(source, node, timeToFuseRatio);
-        }
-
-        // TimeToFuseRatio is (time that has passed since fuse began) / (total time to fuse).
-        // When the timeToFuseRatio reaches 1, it is an indication that the node has been "onFused".
-        if (timeToFuseRatio == kOnFuseReset) {
-            _reticle->stopFuseAnimation();
-        } else {
-            _reticle->animateFuse(1 - timeToFuseRatio);
-        }
-    }
-
-    std::shared_ptr<VROReticle> getReticle() {
-        return _reticle;
-    }
-
-    void setReticle(std::shared_ptr<VROReticle> reticle){
-        _reticle = reticle;
+    void addReticle(int id, std::shared_ptr<VROReticle> reticle){
+        _reticles[id] = reticle;
         _reticleInitialPositionSet = false;
     }
 
@@ -176,58 +106,62 @@ public:
         _lastKnownForward = forward;
     }
 
+    void updateCamera(const VROCamera &camera) {
+        _camera = std::make_shared<VROCamera>(camera);
+    }
+
 protected:
-    
+    std::shared_ptr<VROCamera> _camera;
     std::shared_ptr<VRONode> _rootNode;
 
-    void onReticleGazeHit(const VROHitTestResult &hit) {
+    void onHoveredReticle(int reticleId, HoverEvent event, VROVector3f controllerPos) {
         passert_thread(__func__);
-        if (_reticle == nullptr) {
+        if (_reticles[reticleId] == nullptr) {
             return;
         }
 
-        float depth = -hit.getDistance();
+        float depth = -(event.intersecPos.distance(controllerPos));
+        if (!_reticles[reticleId]->isHeadlocked() && _camera != nullptr) {
+            _reticles[reticleId]->setPosition(event.intersecPos);
 
-        if (!_reticle->isHeadlocked()) {
-            _reticle->setPosition(hit.getLocation());
-            
-            float worldPerScreen = hit.getCamera().getWorldPerScreen(depth);
+            float worldPerScreen = _camera->getWorldPerScreen(depth);
             float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
-            _reticle->setRadius(radius);
+            radius = VROMathClamp(radius, 0.005, 0.05);
+            _reticles[reticleId]->setRadius(radius);
         }
-        else {
+      //  else {
             // Lock the Reticle's position to the center of the screen
             // for fixed pointer mode (usually Cardboard). The reticle is
             // rendered as HUD object, with view matrix identity (e.g. it
             // always follows the headset)
-            
+
             // Set the 'depth' of the reticle to the object it is hovering
             // over, then set the radius to compensate for that distance so
             // that the reticle stays the same size. The depth effectively
             // determines the difference in reticle position between the two
             // eyes.
-            
+
             // Only use the background depth if this is our first time
             // positioning the reticle. Otherwise we maintain the current
             // reticle depth, to avoid reticle 'popping' that occurs when
             // the user moves from an actual focused object to the background.
             // The background has no 'actual' depth so this is ok.
-            if (!_reticleInitialPositionSet || !hit.isBackgroundHit() || kDebugSceneBackgroundDistance) {
-                _reticle->setPosition(VROVector3f(0, 0, depth));
-                _reticleInitialPositionSet = true;
-                
-                float worldPerScreen = hit.getCamera().getWorldPerScreen(depth);
-                float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
-                _reticle->setRadius(radius);
-            }
-        }
+         //   if (!_reticleInitialPositionSet || !hit.isBackgroundHit() || kDebugSceneBackgroundDistance) {
+         //       _reticle->setPosition(VROVector3f(0, 0, depth));
+               // _reticleInitialPositionSet = true;
+
+             //   float worldPerScreen = hit.getCamera().getWorldPerScreen(depth);
+                //float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
+                //_reticle->setRadius(radius);
+         //   }
+        //}
     }
 
 private:
 
     std::weak_ptr<VROEventDelegate> _eventDelegateWeak;
 
-    std::shared_ptr<VROReticle> _reticle;
+    std::map<int, std::shared_ptr<VROReticle>> _reticles;
     bool _reticleInitialPositionSet;
     VROAtomic<VROVector3f> _lastKnownForward;
 

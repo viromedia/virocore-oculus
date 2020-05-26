@@ -57,7 +57,7 @@ std::vector<VROHitTestResult> VROSceneRenderer::performHitTest(VROVector3f origi
     std::shared_ptr<VROScene> scene = _sceneController->getScene();
     std::shared_ptr<VROPortal> sceneRootNode = scene->getRootNode();
     // Grab all the nodes that were hit
-    std::vector<VROHitTestResult> nodeResults = sceneRootNode->hitTest(_renderer->getCamera(), origin, ray, boundsOnly);
+    std::vector<VROHitTestResult> nodeResults = sceneRootNode->hitTest(origin, ray, boundsOnly);
     results.insert(results.end(), nodeResults.begin(), nodeResults.end());
 
     // Sort and get the closest node

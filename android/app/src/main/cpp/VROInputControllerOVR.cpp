@@ -25,69 +25,107 @@
 
 #include "VROInputControllerOVR.h"
 
-void VROInputControllerOVR::handleOVRTouchEvent(int touchAction, float posX, float posY){
-    VROEventDelegate::TouchState action;
-    if ( touchAction == AMOTION_EVENT_ACTION_UP){
-        action = VROEventDelegate::TouchState::TouchUp;
-      //  VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickUp);
-        updateSwipeGesture(_touchDownLocationStart, VROVector3f(posX, posY, 0));
-    } else if ( touchAction == AMOTION_EVENT_ACTION_DOWN){
-        action = VROEventDelegate::TouchState::TouchDown;
-        _touchDownLocationStart = VROVector3f(posX, posY, 0);
-      //  VROInputControllerBase::onButtonEvent(ViroOculus::TouchPad, VROEventDelegate::ClickState::ClickDown);
-    }  else if ( touchAction == AMOTION_EVENT_ACTION_MOVE){
-        action = VROEventDelegate::TouchState::TouchDownMove;
-    } else {
-        return;
+enum ClickState : int;
+
+void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapShots){
+    std::vector<VROEventDelegate::ButtonEvent> allButtonEvents;
+    std::vector<VROEventDelegate::ThumbStickEvent> allThumbStickEvents;
+    std::vector<VROEventDelegate::MoveEvent> allMoveEvents;
+
+    for (ControllerSnapShot snapShot : snapShots) {
+        int deviceID = snapShot.deviceID;
+        if (_controllerSnapShots.find(deviceID) == _controllerSnapShots.end()){
+            pwarn("Controller is not supported");
+            continue;
+        }
+
+        ControllerSnapShot &currentSnap = _controllerSnapShots[deviceID];
+
+        // Process through all the buttons, notify if changed.
+        if (currentSnap.buttonAPressed != snapShot.buttonAPressed) {
+            VROEventDelegate::ClickState state = snapShot.buttonAPressed ?
+                                                 VROEventDelegate::ClickState::ClickDown :
+                                                 VROEventDelegate::ClickState::ClickUp;
+            allButtonEvents.push_back({deviceID, ViroOculusInputEvent::Button_A, state, VROVector3f(), nullptr});
+        }
+        if (currentSnap.buttonBPressed != snapShot.buttonBPressed) {
+            VROEventDelegate::ClickState state = snapShot.buttonBPressed ?
+                                                 VROEventDelegate::ClickState::ClickDown :
+                                                 VROEventDelegate::ClickState::ClickUp;
+            allButtonEvents.push_back({deviceID, ViroOculusInputEvent::Button_B, state, VROVector3f(), nullptr});
+        }
+        if (currentSnap.buttonTrggerHandPressed != snapShot.buttonTrggerHandPressed) {
+            VROEventDelegate::ClickState state = snapShot.buttonTrggerHandPressed ?
+                                                 VROEventDelegate::ClickState::ClickDown :
+                                                 VROEventDelegate::ClickState::ClickUp;
+            allButtonEvents.push_back({deviceID, ViroOculusInputEvent::Trigger_Hand, state, VROVector3f(), nullptr});
+        }
+        if (currentSnap.buttonTriggerIndexPressed != snapShot.buttonTriggerIndexPressed) {
+            VROEventDelegate::ClickState state = snapShot.buttonTriggerIndexPressed ?
+                                                 VROEventDelegate::ClickState::ClickDown :
+                                                 VROEventDelegate::ClickState::ClickUp;
+            allButtonEvents.push_back({deviceID, ViroOculusInputEvent::Trigger_Index, state, VROVector3f(), nullptr});
+        }
+        if (currentSnap.buttonJoyStickPressed != snapShot.buttonJoyStickPressed) {
+            VROEventDelegate::ClickState state = snapShot.buttonJoyStickPressed ?
+                                                 VROEventDelegate::ClickState::ClickDown :
+                                                 VROEventDelegate::ClickState::ClickUp;
+            allButtonEvents.push_back({deviceID, ViroOculusInputEvent::Thumbstick, state, VROVector3f(), nullptr});
+        }
+
+        // Process through all Joystick data.
+        float d = currentSnap.joyStickAxis.distance(snapShot.joyStickAxis);
+        if (currentSnap.buttonJoyStickPressed != snapShot.buttonJoyStickPressed || d > 0) {
+            pwarn("Daniel distance is : %f", d);
+            // Process through all Controller Status data.
+            allThumbStickEvents.push_back({deviceID, ViroOculusInputEvent::Thumbstick,
+                                           snapShot.buttonJoyStickPressed, snapShot.joyStickAxis});
+        }
+
+        // Process through all controller positional data.
+        if (!currentSnap.position.isEqual(snapShot.position) ||
+            !currentSnap.rotation.equals(snapShot.rotation)) {
+            allMoveEvents.push_back({deviceID, deviceID, snapShot.position, snapShot.rotation});
+        }
+
+        // Finally, save a version of the processed snapshot to cache.
+        _controllerSnapShots[deviceID] = snapShot;
     }
 
-    //VROInputControllerBase::onTouchpadEvent(ViroOculus::InputSource::TouchPad, action, posX, posY);
-}
-
-void VROInputControllerOVR::updateSwipeGesture(VROVector3f start, VROVector3f end){
-    VROVector3f diff = end - start;
-    float xDist = fabs(diff.x);
-    float yDist = fabs(diff.y);
-    VROEventDelegate::SwipeState swipeState;
-    if (xDist > yDist){
-        if (diff.x > 0){
-            swipeState = VROEventDelegate::SwipeState::SwipeLeft;
-        } else {
-            swipeState = VROEventDelegate::SwipeState::SwipeRight;
-        }
-    } else {
-        if (diff.y > 0){
-            swipeState = VROEventDelegate::SwipeState::SwipeDown;
-        } else {
-            swipeState = VROEventDelegate::SwipeState::SwipeUp;
-        }
+    // First update positional transforms (used for hit testing).
+    // Move Events SHOULD only be the size of the number of supported devices.
+    bool shouldHitTest = allButtonEvents.size() > 0;
+    if (allMoveEvents.size() > 0) {
+        VROInputControllerBase::onMove(allMoveEvents, shouldHitTest);
     }
-  //  VROInputControllerBase::onSwipe(ViroOculus::InputSource::TouchPad, swipeState);
+
+    // Finally process all button, hover and thumbstick events.
+    if (allButtonEvents.size()> 0) {
+       // pwarn("Daniel process onbutton event");
+        VROInputControllerBase::onButtonEvent(allButtonEvents);
+    }
 }
 
 void VROInputControllerOVR::handleOVRKeyEvent(int keyCode, int action){
     VROEventDelegate::ClickState state = action == AKEY_EVENT_ACTION_DOWN ?
                                          VROEventDelegate::ClickState::ClickDown :  VROEventDelegate::ClickState::ClickUp;
     if (keyCode == AKEYCODE_BACK ) {
-    //    VROInputControllerBase::onButtonEvent(ViroOculus::BackButton, state);
+        //    VROInputControllerBase::onButtonEvent(ViroOculus::BackButton, state);
     }
 }
 
-VROVector3f VROInputControllerOVR::getDragForwardOffset() {
-    return (_hitResult->getLocation() - _lastKnownPosition).normalize() - _lastKnownForward;
-}
 
+// TODO: Hook in Camera updates properly.
 void VROInputControllerOVR::onProcess(const VROCamera &camera) {
     // Grab controller orientation
     VROQuaternion rotation = camera.getRotation();
     VROVector3f controllerForward = rotation.getMatrix().multiply(kBaseForward);
 
     // Perform hit test
-    VROInputControllerBase::updateHitNode(camera, camera.getPosition(), controllerForward);
+    //VROInputControllerBase::updateHitNode(camera, camera.getPosition(), controllerForward);
 
     // Process orientation and update delegates
- //   VROInputControllerBase::onMove(ViroOculus::InputSource::Controller, camera.getPosition(), rotation, controllerForward);
-  //  VROInputControllerBase::processGazeEvent(ViroOculus::InputSource::Controller);
-//
+    // VROInputControllerBase::onMove(ViroOculus::InputSource::Controller, camera.getPosition(), rotation, controllerForward);
+    // VROInputControllerBase::processGazeEvent(ViroOculus::InputSource::Controller);
     notifyCameraTransform(camera);
 }

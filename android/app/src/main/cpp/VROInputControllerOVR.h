@@ -34,14 +34,27 @@
 class VROInputControllerOVR : public VROInputControllerBase {
 
 public:
+    // Snapshot containing the last queried contoller input data.
+    struct ControllerSnapShot {
+        int deviceID;
+        bool buttonAPressed;
+        bool buttonBPressed;
+        bool buttonTriggerIndexPressed;
+        bool buttonTrggerHandPressed;
+        float triggerIndexWeight;
+        float triggerHandWeight;
+        bool buttonJoyStickPressed;
+        VROVector3f joyStickAxis;
+        VROVector3f position;
+        VROQuaternion rotation;
+    };
+
     VROInputControllerOVR(std::shared_ptr<VRODriver> driver) : VROInputControllerBase(driver) {}
     virtual ~VROInputControllerOVR(){}
 
-    virtual VROVector3f getDragForwardOffset();
-    void onProcess(const VROCamera &camera);
-    void handleOVRKeyEvent(int keyCode, int action);
-    void handleOVRTouchEvent(int touchAction, float posX, float posY);
-    void updateSwipeGesture(VROVector3f start, VROVector3f end);
+    void processInput(std::vector<ControllerSnapShot> snapshots);
+
+    void handleOVRKeyEvent(int keyCode, int action); // TODO: Volume buttons?
 
     virtual std::string getHeadset() {
         return "gearvr";
@@ -53,10 +66,14 @@ public:
 
 protected:
     std::shared_ptr<VROInputPresenter> createPresenter(std::shared_ptr<VRODriver> driver) {
-        return std::make_shared<VROInputPresenterOVR>();
+        return std::make_shared<VROInputPresenterOVR>(driver);
     }
 
 private:
-    VROVector3f _touchDownLocationStart;
+    // Set default configurations
+    std::map<int, ControllerSnapShot> _controllerSnapShots = {
+            {536870915, {1, false, false, false, false, false, VROVector3f(), VROVector3f(), VROQuaternion(), 0.0f, 0.0f}},
+            {536870914, {1, false, false, false, false, false, VROVector3f(), VROVector3f(), VROQuaternion(), 0.0f, 0.0f}},
+    };
 };
 #endif

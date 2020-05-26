@@ -34,32 +34,19 @@
 #include <float.h>
 
 /**
- * Header file containing sets of input sources that are grouped to
- * a VR platform.
+ * Header file containing sets of DeviceIds representing the device used per platform
+ * and the InputSource representing the inputs triggered on those devices.
  */
-namespace ViroDayDream{
-    enum InputSource{
-        Controller = 1,
-        TouchPad = 2,
-        AppButton = 3,
-        HomeButton = 4,
-        VolUpButton = 5,
-        VolDownButton = 6
-    };
-}
-
-namespace ViroCardBoard{
-    enum InputSource{
-        Controller=1,
-        ViewerButton = 2
-    };
-}
-
-namespace ViroOculus{
-    enum InputSource{
-        Controller = 1,
-        TouchPad = 2,
-        BackButton = 3
+namespace ViroOculusInputEvent {
+    const int ControllerRightId = 536870914;
+    const int ControllerLeftId = 536870915;
+    enum InputSource {
+        None                = 0,
+        Button_A            = 1,
+        Button_B            = 2,
+        Trigger_Index       = 3,
+        Trigger_Hand        = 4,
+        Thumbstick          = 5,
     };
 }
 #endif

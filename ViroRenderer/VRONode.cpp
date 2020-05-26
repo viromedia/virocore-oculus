@@ -1546,17 +1546,17 @@ VROBoundingBox VRONode::getUmbrellaBoundingBox() const {
     return _worldUmbrellaBoundingBox;
 }
 
-std::vector<VROHitTestResult> VRONode::hitTest(const VROCamera &camera, VROVector3f origin, VROVector3f ray,
+std::vector<VROHitTestResult> VRONode::hitTest(VROVector3f origin, VROVector3f ray,
                                                bool boundsOnly) {
     passert_thread(__func__);
     std::vector<VROHitTestResult> results;
 
     VROMatrix4f identity;
-    hitTest(camera, origin, ray, boundsOnly, results);
+    hitTest(origin, ray, boundsOnly, results);
     return results;
 }
 
-void VRONode::hitTest(const VROCamera &camera, VROVector3f origin, VROVector3f ray, bool boundsOnly,
+void VRONode::hitTest(VROVector3f origin, VROVector3f ray, bool boundsOnly,
                       std::vector<VROHitTestResult> &results) {
     passert_thread(__func__);
     if (!_selectable) {
@@ -1585,14 +1585,13 @@ void VRONode::hitTest(const VROCamera &camera, VROVector3f origin, VROVector3f r
             if (boundsOnly || hitTestGeometry(origin, ray, transform, &intPt)) {
                 results.push_back( {std::static_pointer_cast<VRONode>(shared_from_this()),
                                     intPt,
-                                    origin.distance(intPt), false,
-                                    camera });
+                                    origin.distance(intPt), false});
             }
         }
     }
     
     for (std::shared_ptr<VRONode> &subnode : _subnodes) {
-        subnode->hitTest(camera, origin, ray, boundsOnly, results);
+        subnode->hitTest(origin, ray, boundsOnly, results);
     }
 }
 

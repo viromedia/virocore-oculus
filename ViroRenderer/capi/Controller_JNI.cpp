@@ -70,9 +70,10 @@ VRO_METHOD(void, nativeEnableReticle)(VRO_ARGS
         }
 
         std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
-        std::shared_ptr<VROReticle> reticle = controllerPresenter->getReticle();
-        if (reticle != nullptr) {
-            reticle->setEnabled(enable);
+        std::map<int, std::shared_ptr<VROReticle>> reticles = controllerPresenter->getReticles();
+        std::map<int, std::shared_ptr<VROReticle>>::iterator it;
+        for (it = reticles.begin(); it != reticles.end(); it++){
+            it->second->setEnabled(enable);
         }
     });
 }

@@ -473,10 +473,6 @@ void VRORenderer::prepareFrame(int frame, VROViewport viewport, VROFieldOfView f
         scene->updateSortKeys(_renderMetadata, context, driver);
         scene->syncAtomicRenderProperties();
         updateSceneEffects(driver, scene);
-
-        _inputController->onProcess(camera);
-        _inputController->setView(camera.getLookAtMatrix());
-        _inputController->setProjection(projection);
     }
 
     driver->willRenderFrame(context);
@@ -545,8 +541,10 @@ void VRORenderer::renderHUD(VROEyeType eye, VROMatrix4f eyeFromHeadMatrix, VROMa
     /*
      For the reticle, we choose our view matrix based on whether or not it's headlocked.
      */
-    std::shared_ptr<VROReticle> reticle = _inputController->getPresenter()->getReticle();
-    if (reticle) {
+    std::map<int, std::shared_ptr<VROReticle>> reticles = _inputController->getPresenter()->getReticles();
+    std::map<int, std::shared_ptr<VROReticle>>::iterator it;
+    for (it = reticles.begin(); it != reticles.end(); it++){
+        std::shared_ptr<VROReticle> reticle = it->second;
         if (reticle->isHeadlocked()) {
             _context->setViewMatrix(eyeFromHeadMatrix);
         }
