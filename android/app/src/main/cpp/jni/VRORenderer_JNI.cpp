@@ -212,7 +212,7 @@ VRO_METHOD(void, nativeOnTouchEvent)(VRO_ARGS
         if (!renderer) {
             return;
         }
-        renderer->onTouchEvent(onTouchAction, xPos, yPos);
+        //renderer->onTouchEvent(onTouchAction, xPos, yPos);
     });
 }
 
@@ -228,7 +228,7 @@ VRO_METHOD(void, nativeOnPinchEvent) (VRO_ARGS
         if (!renderer) {
             return;
         }
-        renderer->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
+    //    renderer->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
     });
 }
 
@@ -244,7 +244,7 @@ VRO_METHOD(void, nativeOnRotateEvent) (VRO_ARGS
         if (!renderer) {
             return;
         }
-        renderer->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
+       // renderer->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
     });
 }
 
@@ -486,7 +486,8 @@ VRO_METHOD(void, nativeRemoveFrameListener)(VRO_ARGS
 VRO_METHOD(jboolean, nativeIsReticlePointerFixed)(VRO_ARGS
                                                   jlong native_renderer) {
     std::shared_ptr<VROSceneRenderer> sceneRenderer = Renderer::native(native_renderer);
-    return sceneRenderer->getRenderer()->getInputController()->getPresenter()->getReticle()->isHeadlocked();
+    pwarn("Daniel get pre 1");
+    return false;
 }
 
 VRO_METHOD(VRO_FLOAT_ARRAY, nativeGetCameraPositionRealtime)(VRO_ARGS

@@ -27,11 +27,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.support.annotation.AttrRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -347,13 +349,34 @@ public class ViroViewOVR extends ViroView implements SurfaceHolder.Callback {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        // Avoid accidental volume key presses while the phone is in the VR headset.
-        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP
-                || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
+        int keyCode = event.getKeyCode();
+        int action = event.getAction();
+        if (action != KeyEvent.ACTION_DOWN && action != KeyEvent.ACTION_UP) {
+            return super.dispatchKeyEvent(event);
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            adjustVolume(1);
             return true;
         }
-        mNativeRenderer.onKeyEvent(event.getKeyCode(), event.getAction());
+
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            adjustVolume(-1);
+            return true;
+        }
+
+        if (action == KeyEvent.ACTION_UP) {
+            Log.v("Daniel", "GLES3JNIActivity::dispatchKeyEvent( " + keyCode + ", " + action + " )");
+        }
+
+        mNativeRenderer.onKeyEvent(keyCode, action);
         return true;
+    }
+
+    // Suggested by Oculus
+    private void adjustVolume(int direction) {
+        AudioManager audio = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, 0);
     }
 
     /**

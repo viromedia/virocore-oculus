@@ -57,8 +57,8 @@ public:
      Do Not change the Enum Values!!! Simply add additional event types as need be.
      */
     enum EventAction {
-        OnClick = 1,
-        OnHover = 2,
+        OnHover = 1,
+        OnClick = 2,
         OnMove = 3,
         OnThumbStick = 4,
         OnControllerStatus = 5,
@@ -195,27 +195,30 @@ public:
     // Can represent Events from different DeviceIDs, AND sources
     // Can be triggered on Nodes
     virtual void onButtonEvent(std::vector<ButtonEvent> &events) {
-        //No-op
+        VROEventDelegate::ButtonEvent e = events.front();
+        std::vector<float> intPos = {e.intersecPos.x, e.intersecPos.y, e.intersecPos.z};
+        onClick(e.source, e.hitResultNode, e.state, intPos);
+    }
+
+    // Can be triggered on Nodes
+    virtual void onHover(std::vector<HoverEvent> &events) {
+        VROEventDelegate::HoverEvent e = events.front();
+        std::vector<float> intPos = {e.intersecPos.x, e.intersecPos.y, e.intersecPos.z};
+        onHover(e.source, e.onHoveredNode, e.isHovering, intPos);
     }
 
     // Can represent Events from different DeviceIDs, not sources
     virtual void onMove(std::vector<MoveEvent> &events) {
-        //No-op
-    }
-
-    // Can represent Events from different DeviceIDs, not sources
-    // Can be triggered on Nodes.
-    virtual void onHover(std::vector<HoverEvent> &events) {
-        //No-op
+        VROEventDelegate::MoveEvent e = events.front();
+        onMove(e.source, nullptr, e.rot.toEuler(), e.pos, VROVector3f());
     }
 
     virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events) {
         //No-op
     }
 
-
     /*
-     Delegate events triggered by the VROInputControllerBase.
+    Delegate events for the listening of single events. Meant for simple API usage and backwards Viro Compatibility.
      */
     virtual void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position) {
         //No-op
@@ -241,35 +244,7 @@ public:
         //No-op
     }
 
-    virtual void onSwipe(int source, std::shared_ptr<VRONode> node, SwipeState swipeState) {
-        //No-op
-    }
-
-    virtual void onScroll(int source, std::shared_ptr<VRONode> node, float x, float y) {
-        //No-op
-    }
-
     virtual void onDrag(int source, std::shared_ptr<VRONode> node, VROVector3f newPosition) {
-        //No-op
-    }
-
-    virtual void onFuse(int source, std::shared_ptr<VRONode> node, float timeToFuseRatio) {
-        //No-op
-    }
-    
-    virtual void onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
-        //No-op
-    }
-    
-    virtual void onRotate(int source, std::shared_ptr<VRONode> node, float rotationRadians, RotateState rotateState) {
-        //No-op
-    }
-
-    virtual void onCameraARHitTest(std::vector<std::shared_ptr<VROARHitTestResult>> results) {
-        //No-op
-    }
-
-    virtual void onARPointCloudUpdate(std::shared_ptr<VROARPointCloud> pointCloud) {
         //No-op
     }
 
@@ -285,6 +260,36 @@ public:
         return _timeToFuseDuration;
     }
 
+    ///// REMOVE ///////
+
+
+    virtual void onFuse(int source, std::shared_ptr<VRONode> node, float timeToFuseRatio) {
+        //No-op
+    }
+
+    virtual void onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
+        //No-op
+    }
+
+    virtual void onRotate(int source, std::shared_ptr<VRONode> node, float rotationRadians, RotateState rotateState) {
+        //No-op
+    }
+
+    virtual void onCameraARHitTest(std::vector<std::shared_ptr<VROARHitTestResult>> results) {
+        //No-op
+    }
+
+    virtual void onARPointCloudUpdate(std::shared_ptr<VROARPointCloud> pointCloud) {
+        //No-op
+    }
+
+    virtual void onSwipe(int source, std::shared_ptr<VRONode> node, SwipeState swipeState) {
+        //No-op
+    }
+
+    virtual void onScroll(int source, std::shared_ptr<VRONode> node, float x, float y) {
+        //No-op
+    }
 private:
     
     std::map<VROEventDelegate::EventAction , bool> _enabledEventMap;

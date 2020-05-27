@@ -49,6 +49,7 @@ import com.viro.core.CameraImageListener;
 import com.viro.core.CameraIntrinsics;
 import com.viro.core.ClickListener;
 import com.viro.core.DragListener;
+import com.viro.core.HoverListener;
 import com.viro.core.Quaternion;
 import com.viro.core.RendererConfiguration;
 import com.viro.core.ViroMediaRecorder;
@@ -134,81 +135,19 @@ public class ViroActivity extends AppCompatActivity {
         config.setBloomEnabled(true);
         config.setHDREnabled(true);
         config.setPBREnabled(true);
+        Log.e("Daniel"," Load OVR");
+        mViroView = new ViroViewOVR(this, new ViroViewOVR.StartupListener() {
+            @Override
+            public void onSuccess() {
+                onRendererStart();
+            }
 
-        if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("GVR")) {
-            mViroView = new ViroViewGVR(this, new ViroViewGVR.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewGVR.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, new Runnable() {
-                @Override
-                public void run() {
-                    Log.e(TAG, "On GVR userRequested exit");
-                }
-            }, config);
-            setContentView(mViroView);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("OVR")) {
-            mViroView = new ViroViewOVR(this, new ViroViewOVR.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewOVR.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-            setContentView(mViroView);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("Scene")) {
-            mViroView = new ViroViewScene(this, new ViroViewScene.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewScene.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-
-
-            mViroView.setPadding(60,60, 60,60);
-            mViroView.setBackgroundColor(Color.argb(0, 0, 0, 0));
-
-            FrameLayout frameLayout = new FrameLayout(this);
-            frameLayout.addView(mViroView);
-            frameLayout.setBackgroundColor(Color.BLUE);
-
-            setContentView(frameLayout);
-
-        } else if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("ARCore")) {
-            mViroView = new ViroViewARCore(this, new ViroViewARCore.StartupListener() {
-                @Override
-                public void onSuccess() {
-                    onRendererStart();
-                }
-
-                @Override
-                public void onFailure(ViroViewARCore.StartupError error, String errorMessage) {
-                    onRendererFailed(error.toString(), errorMessage);
-                }
-            }, config);
-            setContentView(mViroView);
-
-            ViroViewARCore arView = (ViroViewARCore) mViroView;
-            Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-            arView.setCameraRotation(display.getRotation());
-        }
+            @Override
+            public void onFailure(ViroViewOVR.StartupError error, String errorMessage) {
+                onRendererFailed(error.toString(), errorMessage);
+            }
+        }, config);
+        setContentView(mViroView);
     }
 
     @Override
@@ -264,17 +203,11 @@ public class ViroActivity extends AppCompatActivity {
     }
 
     private void onRendererStart() {
-        Log.e("ViroActivity", "onRendererStart called");
+        Log.e("Daniel", "1 called");
 
         mViroView.setVRModeEnabled(true);
         mViroView.setDebugHUDEnabled(true);
-
-        if (BuildConfig.VR_PLATFORM.equalsIgnoreCase("ARCore")) {
-            initializeArScene();
-        }
-        else {
-            initializeVrScene();
-        }
+        initializeVrScene();
 
         // Uncomment to run a test screenshot through the OpenCV target tracking code
         //testFindInScreenshot();
@@ -286,8 +219,11 @@ public class ViroActivity extends AppCompatActivity {
     }
 
     private void initializeVrScene() {
+        Log.e("Daniel", "initializeVrScene");
+
         // Creation of SceneControllerJni within scene navigator
         final Scene scene = new Scene();
+        //scene.setBackgroundCubeWithColor(Color.WHITE);
         final Node rootNode = scene.getRootNode();
         List<Node> nodes = new ArrayList<>();
         nodes = testBox(getApplicationContext());
@@ -307,12 +243,12 @@ public class ViroActivity extends AppCompatActivity {
         //addSpatialSound(data);
         //addNormalSound(data);
 
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                setSoundRoom(scene, mViroView.getViroContext());
-            }
-        }, 5000);
+        //mHandler.postDelayed(new Runnable() {
+           // @Override
+          //  public void run() {
+         //       setSoundRoom(scene, mViroView.getViroContext());
+        //    }
+       // }, 5000);
         //setSoundRoom(scene, mViroView.getViroContext());
 
         for (final Node node : nodes) {
@@ -707,7 +643,7 @@ public class ViroActivity extends AppCompatActivity {
         final float[] position = {0, -1, -2};
         node3.setPosition(new Vector(position));
         node3.setGeometry(textJni);
-        //node3.setEventDelegate(getGenericDelegate("Text"));
+        node3.setEventDelegate(getGenericDelegate("Text"));
 
         final Bitmap bobaBitmap = getBitmapFromAssets("boba.png");
         final Bitmap specBitmap = getBitmapFromAssets("specular.png");
@@ -724,7 +660,7 @@ public class ViroActivity extends AppCompatActivity {
         //material.setBloomThreshold(0.2f);
 
         // Creation of ViroBox to the right and billboarded
-        final Box boxGeometry = new Box(2, 4, 2);
+        final Box boxGeometry = new Box(2, 2, 2);
         node1.setGeometry(boxGeometry);
         final Vector boxPosition = new Vector(5, 0, -3);
         node1.setPosition(boxPosition);
@@ -747,6 +683,14 @@ public class ViroActivity extends AppCompatActivity {
             @Override
             public void onClickState(int source, Node node, ClickState clickState, Vector location) {
                 Log.i("Viro", "on click state " + clickState.toString());
+            }
+        });
+
+        node2.setHoverListener(new HoverListener() {
+            @Override
+            public void onHover(int source, Node node, boolean isHovering, Vector location) {
+                Log.i("Viro", "ON HOVER "+isHovering);
+
             }
         });
 
@@ -1581,15 +1525,16 @@ public class ViroActivity extends AppCompatActivity {
 
     private EventDelegate getGenericDelegate(final String delegateTag){
         final EventDelegate delegateJni = new EventDelegate();
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, false);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_FUSE, true);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, true);
+        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_FUSE, true);
+        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
         delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CLICK, true);
-        delegateJni.setEventDelegateCallback(new GenericEventCallback(delegateTag));
+        lol = new GenericEventCallback(delegateTag);
+        delegateJni.setEventDelegateCallback(lol);
 
         return delegateJni;
     }
-
+public GenericEventCallback lol;
     private class ARDragDelegateCallback extends GenericEventCallback {
 
         private final Node mNode;
@@ -1648,7 +1593,7 @@ public class ViroActivity extends AppCompatActivity {
 
         @Override
         public void onClick(final int source, final Node node, final ClickState clickState, final float[] hitLoc) {
-            Log.e(TAG, delegateTag + " onClick " + clickState.toString() + " location " +
+            Log.e(TAG, delegateTag + " onButtonEvent " + clickState.toString() + " location " +
                     hitLoc[0] + ", " + hitLoc[1] + ", " + hitLoc[2]);
         }
 

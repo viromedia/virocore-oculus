@@ -41,9 +41,9 @@ public:
         bool buttonBPressed;
         bool buttonTriggerIndexPressed;
         bool buttonTrggerHandPressed;
+        bool buttonJoyStickPressed;
         float triggerIndexWeight;
         float triggerHandWeight;
-        bool buttonJoyStickPressed;
         VROVector3f joyStickAxis;
         VROVector3f position;
         VROQuaternion rotation;
@@ -53,6 +53,7 @@ public:
     virtual ~VROInputControllerOVR(){}
 
     void processInput(std::vector<ControllerSnapShot> snapshots);
+    void onProcess(const VROCamera &camera); // TODO: Remove and Hook in camera updates properly.
 
     void handleOVRKeyEvent(int keyCode, int action); // TODO: Volume buttons?
 
@@ -72,8 +73,8 @@ protected:
 private:
     // Set default configurations
     std::map<int, ControllerSnapShot> _controllerSnapShots = {
-            {536870915, {1, false, false, false, false, false, VROVector3f(), VROVector3f(), VROQuaternion(), 0.0f, 0.0f}},
-            {536870914, {1, false, false, false, false, false, VROVector3f(), VROVector3f(), VROQuaternion(), 0.0f, 0.0f}},
+            {536870915, {1, false, false, false, false, false, 0.0f, 0.0f, VROVector3f(), VROVector3f(), VROQuaternion()}},
+            {536870914, {1, false, false, false, false, false, 0.0f, 0.0f, VROVector3f(), VROVector3f(), VROQuaternion()}},
     };
 };
 #endif

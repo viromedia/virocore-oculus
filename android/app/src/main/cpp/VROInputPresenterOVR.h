@@ -124,10 +124,6 @@ public:
                 VROInputPresenter::onHoveredReticle(event.deviceId, event, _LeftControllerBaseNode->getWorldPosition());
             } else if (event.deviceId == ViroOculusInputEvent::ControllerRightId){
                 VROInputPresenter::onHoveredReticle(event.deviceId, event, _rightControllerBaseNode->getWorldPosition());
-
-
-                cubeNode->setWorldTransform(event.intersecPos, VROQuaternion());
-
             }
         }
 
