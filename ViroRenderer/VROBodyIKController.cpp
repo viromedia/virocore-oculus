@@ -24,7 +24,6 @@
 //  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "VROBodyIKController.h"
-#include "VROInputControllerAR.h"
 #include "VROBodyTracker.h"
 #include "VROBodyPlayer.h"
 #include "VROMatrix4f.h"
@@ -1085,62 +1084,6 @@ void VROBodyIKController::updateModel() {
 }
 
 bool VROBodyIKController::findTorsoClusteredDepth(std::map<VROBodyJointType, VROBodyJoint> &latestJoints, VROMatrix4f &matOut) {
-    std::shared_ptr<VROARSession> arSession;
-    
-#if VRO_PLATFORM_IOS
-    arSession = [_view getARSession];
-#endif
-    if (!arSession) {
-        return false;
-    }
-    
-    std::unique_ptr<VROARFrame> &lastFrame = arSession->getLastFrame();
-    std::vector<VROVector4f> pointCloudPoints = lastFrame->getPointCloud()->getPoints();
-    
-    
-    // get the "box" around the user's torso based on a diagonal pair of hip & shoulders
-    float maxX;
-    float minX;
-    float maxY;
-    float minY;
-    
-    auto rightShoulderIt = latestJoints.find(VROBodyJointType::RightShoulder);
-    auto leftShoulderIt = latestJoints.find(VROBodyJointType::LeftShoulder);
-    auto rightHipIt = latestJoints.find(VROBodyJointType::RightHip);
-    auto leftHipIt = latestJoints.find(VROBodyJointType::LeftHip);
-
-    if (rightShoulderIt != latestJoints.end() && leftHipIt != latestJoints.end()) {
-        maxX = leftHipIt->second.getScreenCoords().x;
-        minX = rightShoulderIt->second.getScreenCoords().x;
-        maxY = leftHipIt->second.getScreenCoords().y;
-        minY = rightShoulderIt->second.getScreenCoords().y;
-    } else if (leftShoulderIt != latestJoints.end() && rightHipIt != latestJoints.end()) {
-        maxX = leftShoulderIt->second.getScreenCoords().x;
-        minX = rightHipIt->second.getScreenCoords().x;
-        maxY = rightHipIt->second.getScreenCoords().y;
-        minY = leftShoulderIt->second.getScreenCoords().y;
-        
-    } else {
-        return false;
-    }
-
-    float torsoWidth = maxX - minX;
-    float torsoHeight = maxY - minY;
-    
-    std::vector<VROVector3f> hitTestResults;
-    
-    for (int i = 0; i < 10; i++) {
-        VROMatrix4f estimate;
-        if (performDepthTest(minX + (torsoWidth * ((float) rand()) / RAND_MAX), minY + (torsoHeight * ((float) rand()) / RAND_MAX), estimate)) {
-            hitTestResults.push_back(estimate.extractTranslation());
-        }
-    }
-    
-    if (hitTestResults.size() <= 5) {
-        return false;
-    }
-    
-    matOut.translate(findClusterInPoints(hitTestResults));
     return true;
 }
 
@@ -1208,81 +1151,16 @@ bool VROBodyIKController::performWindowDepthTest(float x, float y, VROMatrix4f &
 }
 
 bool VROBodyIKController::performDepthTest(float x, float y, VROMatrix4f &matOut) {
-    // Else use the usual ARHitTest to determine depth.
-    float _currentProjection = 0.0037;
-    int viewportWidth =_renderer->getCamera().getViewport().getWidth();
-    int viewportHeight = _renderer->getCamera().getViewport().getHeight();
-    std::vector<std::shared_ptr<VROARHitTestResult>> results;
-#if VRO_PLATFORM_IOS
-    VROVector3f transformed = { x * viewportWidth, y * viewportHeight, _currentProjection };
-    results = [_view performARHitTestWithPoint:transformed.x y:transformed.y];
-#endif
-
-    std::shared_ptr<VROARHitTestResult> finalResult = nullptr;
-    for (auto result: results) {
-        if (finalResult == nullptr) {
-            finalResult = result;
-            continue;
-        }
-
-        // only consider feature points and choose the closest one.
-        if (result->getType() == VROARHitTestResultType::FeaturePoint && result->getDistance() < finalResult->getDistance()) {
-            finalResult = result;
-        }
-    }
-
-    if (finalResult == nullptr) {
-        return false;
-    } else {
-        VROVector3f pos = finalResult->getWorldTransform().extractTranslation();
-        VROMatrix4f out = VROMatrix4f::identity();
-        out.translate(pos);
-        matOut = out;
-        return true;
-    }
+    return false;
 }
 
 
 bool VROBodyIKController::performUnprojectionToPlane(float x, float y, VROMatrix4f &matOut) {
-    const VROCamera &camera = _renderer->getCamera();
-    int viewport[4] = {0, 0, camera.getViewport().getWidth(), camera.getViewport().getHeight()};
-    VROMatrix4f mvp = camera.getProjection().multiply(camera.getLookAtMatrix());
-    x = viewport[2] * x;
-    y = viewport[3] * y;
-
-    // Compute the camera ray by unprojecting the point at the near clipping plane
-    // and the far clipping plane.
-    VROVector3f ncpScreen(x, y, 0.0);
-    VROVector3f ncpWorld;
-    if (!VROProjector::unproject(ncpScreen, mvp.getArray(), viewport, &ncpWorld)) {
-        return false;
-    }
-
-    VROVector3f fcpScreen(x, y, 1.0);
-    VROVector3f fcpWorld;
-    if (!VROProjector::unproject(fcpScreen, mvp.getArray(), viewport, &fcpWorld)) {
-        return false;
-    }
-    VROVector3f ray = fcpWorld.subtract(ncpWorld).normalize();
-
-    // Find the intersection between the plane and the controller forward
-    VROVector3f intersectionPoint;
-    bool success = ray.rayIntersectPlane(_projectedPlanePosition, _projectedPlaneNormal, ncpWorld, &intersectionPoint);
-    matOut.toIdentity();
-    matOut.translate(intersectionPoint);
-    return success;
+    return false;
 }
 
 void VROBodyIKController::setBodyTrackedState(VROBodyTrackedState state) {
-    if (_currentTrackedState == state) {
-        return;
-    }
-
-    _currentTrackedState = state;
-    std::shared_ptr<VROBodyIKControllerDelegate> delegate = _delegate.lock();
-    if (delegate != nullptr) {
-        delegate->onBodyTrackStateUpdate(_currentTrackedState);
-    }
+    return;
 }
 
 void VROBodyIKController::setDelegate(std::shared_ptr<VROBodyIKControllerDelegate> delegate) {
@@ -1290,91 +1168,8 @@ void VROBodyIKController::setDelegate(std::shared_ptr<VROBodyIKControllerDelegat
 }
 
 std::shared_ptr<VRONode> VROBodyIKController::createDebugBoxUI(bool isAffector, std::string tag) {
-    // Create our debug box node
-    float dimen = 0.005;
-    if (isAffector) {
-        dimen =  0.005;
-    }
-    std::shared_ptr<VROBox> box = VROBox::createBox(dimen, dimen, dimen);
-    std::shared_ptr<VROMaterial> mat = std::make_shared<VROMaterial>();
-    mat->setCullMode(VROCullMode::None);
-    mat->setReadsFromDepthBuffer(false);
-    mat->setWritesToDepthBuffer(false);
-    if (isAffector) {
-        mat->getDiffuse().setColor(VROVector4f(0.0, 1.0, 0, 1.0));
-    } else {
-        mat->getDiffuse().setColor(VROVector4f(1.0, 0, 0, 1.0));
-    }
-
-    std::vector<std::shared_ptr<VROMaterial>> mats;
-    mats.push_back(mat);
-    box->setMaterials(mats);
-
-    std::shared_ptr<VRONode> debugNode = std::make_shared<VRONode>();
-    debugNode->setGeometry(box);
-    debugNode->setRenderingOrder(10);
-    debugNode->setTag(tag);
-    debugNode->setIgnoreEventHandling(true);
-
-    return debugNode;
+    return nullptr;
 }
-
-#if VRO_PLATFORM_IOS
-void VROBodyIKController::enableDebugMLViewIOS() {
-    if (_view == NULL) {
-        pwarn("View is not yet setup properly, unable to enableDebugMLView!");
-        return;
-    }
-    
-    int endJointCount = static_cast<int>(VROBodyJointType::Pelvis);
-    for (int i = static_cast<int>(VROBodyJointType::Top); i <= endJointCount; i++) {
-        _bodyViews[i] = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 4, 4)];
-        _bodyViews[i].backgroundColor = colors[i];
-        _bodyViews[i].clipsToBounds = NO;
-
-        _labelViews[i] = [[UILabel alloc] initWithFrame:CGRectMake(7, -3, 300, 8)];
-        _labelViews[i].text = [NSString stringWithUTF8String:pointLabels[i].c_str()];
-        _labelViews[i].textColor = colors[i];
-        _labelViews[i].font = [UIFont preferredFontForTextStyle:UIFontTextStyleCaption2];
-        [_labelViews[i] setFont:[UIFont systemFontOfSize:9]];
-        [_bodyViews[i] addSubview:_labelViews[i]];
-        [_view addSubview:_bodyViews[i]];
-    }
-}
-
-void VROBodyIKController::updateDebugMLViewIOS(const std::map<VROBodyJointType, VROBodyJoint> &joints) {
-    float minAlpha = 0.4;
-    float maxAlpha = 1.0;
-    float maxConfidence = 0.6;
-    float minConfidence = 0.1;
-    int viewWidth  = _view.frame.size.width;
-    int viewHight = _view.frame.size.height;
-
-    int endJointCount = static_cast<int>(VROBodyJointType::LeftAnkle);
-    for (int i = static_cast<int>(VROBodyJointType::Top); i <= endJointCount; i++) {
-        std::string labelTag = pointLabels[i] + " [N/A]";
-        _labelViews[i].text =  [NSString stringWithUTF8String:labelTag.c_str()];
-    }
-
-    for (auto &kv : joints) {
-        if ((int) kv.first > endJointCount) {
-            continue;
-        }
-        
-        VROVector3f point = kv.second.getScreenCoords();
-        VROVector3f transformed = { point.x * viewWidth, point.y * viewHight, 0 };
-        // Only update the text for points that match our level of confidence.
-        // Note that low confidence points are still rendered to ensure validity.
-        //if (kv.second.getConfidence() > _mlJointConfidenceThresholds[kv.first]) {
-            std::string labelTag = pointLabels[(int)kv.first] + " -> " + kv.second.getProjectedTransform().extractTranslation().toString();
-            _labelViews[(int)kv.first].text = [NSString stringWithUTF8String:labelTag.c_str()];
-        //}
-        
-        _bodyViews[(int) kv.first].center = CGPointMake(transformed.x, transformed.y);
-        _bodyViews[(int) kv.first].alpha = VROMathInterpolate(kv.second.getConfidence(), minConfidence, maxConfidence, minAlpha, maxAlpha);
-    }
-}
-#endif
 
 void VROBodyIKController::setDisplayDebugCubes(bool visible) {
     _displayDebugCubes = visible;
