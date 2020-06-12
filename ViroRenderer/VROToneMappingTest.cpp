@@ -146,7 +146,6 @@ void VROToneMappingTest::build(std::shared_ptr<VRORenderer> renderer,
     
     _eventDelegate = std::make_shared<VROToneMappingEventDelegate>(scene, text);
     _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, true);
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnFuse, true);
     boxParentNode->setEventDelegate(_eventDelegate);
 }
 

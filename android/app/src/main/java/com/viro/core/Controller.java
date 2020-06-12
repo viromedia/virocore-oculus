@@ -391,24 +391,6 @@ public class Controller implements EventDelegate.EventDelegateCallback {
     }
 
     /**
-     * This is used for real-time depth testing, only by the VRTScene. Not exposed to Java API.
-     * @hide
-     */
-    @Override
-    public void onCameraARHitTest(ARHitTestResult[] results) {
-        //No-op
-    }
-
-    /**
-     * This is used to notify the developer of the current point cloud. Not exposed to the Java API.
-     * @hide
-     */
-    @Override
-    public void onARPointCloudUpdate(ARPointCloud pointCloud) {
-        //No-op
-    }
-
-    /**
      * This is used to notify the developer of the current camera transform. Not exposed to the Java API.
      * @hide
      */
@@ -454,77 +436,6 @@ public class Controller implements EventDelegate.EventDelegateCallback {
             mStatusListener.onControllerStatus(source, status);
         }
     }
-    /**
-     * @hide
-     */
-    @Override
-    public void onTouch(int source, Node node, TouchState touchState, float[] touchPadPos) {
-        if (mTouchpadTouchListener != null) {
-            mTouchpadTouchListener.onTouch(source, node, touchState, touchPadPos[0], touchPadPos[1]);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onScroll(int source, Node node, float x, float y) {
-        if (mTouchpadScrollListener != null) {
-            mTouchpadScrollListener.onScroll(source, node, x, y);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onSwipe(int source, Node node, SwipeState swipeState) {
-        if (mTouchpadSwipeListener != null) {
-            mTouchpadSwipeListener.onSwipe(source, node, swipeState);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onDrag(int source, Node node, float x, float y, float z) {
-        if (mDragListener != null) {
-            Vector local = new Vector(x, y, z);
-
-            // We have to convert the local drag coordinates to world space
-            Vector world = new Vector(x, y, z);
-            if (node != null && node.getParentNode() != null) {
-                world = node.getParentNode().convertLocalPositionToWorldSpace(local);
-            }
-            mDragListener.onDrag(source, node, world, local);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onFuse(int source, Node node) {
-        if (mFuseListener != null) {
-            mFuseListener.onFuse(source, node);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onPinch(int source, Node node, float scaleFactor, PinchState pinchState) {
-        if (mGesturePinchListener != null) {
-            mGesturePinchListener.onPinch(source, node, scaleFactor, pinchState);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onRotate(int source, Node node, float rotationRadians, RotateState rotateState) {
-        if (mGestureRotateListener != null) {
-            mGestureRotateListener.onRotate(source, node, rotationRadians, rotateState);
-        }
-    }
-
     private native void nativeSetEventDelegate(long contextRef, long delegateRef);
     private native void nativeEnableReticle(long contextRef, boolean enabled);
     private native void nativeEnableController(long contextRef, boolean enabled);

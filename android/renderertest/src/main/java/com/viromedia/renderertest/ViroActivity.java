@@ -1547,36 +1547,6 @@ public GenericEventCallback lol;
             super(tag);
             mNode = node;
         }
-
-        @Override
-        public void onPinch(final int source, final Node node, final float scaleFactor, final PinchState pinchState) {
-            if (pinchState == PinchState.PINCH_START) {
-                if (mStartScale == null) {
-                    final float[] scale = {1, 1, 1};
-                    mStartScale = scale;
-                }
-            } else if (pinchState == PinchState.PINCH_END) {
-                for (int i = 0; i < 3; i++) {
-                    mStartScale[i] = mStartScale[i] * scaleFactor;
-                }
-            } else {
-                final float[] newScale = {0, 0, 0};
-                for (int i = 0; i < 3; i++) {
-                    newScale[i] = mStartScale[i] * scaleFactor;
-                }
-                mNode.setScale(new Vector(newScale));
-            }
-        }
-
-        @Override
-        public void onRotate(final int source, final Node node, final float rotationRadians, final RotateState rotateState) {
-            if (rotateState == RotateState.ROTATE_MOVE) {
-                final float[] newRotation = {0, mYRotation - rotationRadians, 0};
-                mNode.setRotation(new Vector(newRotation));
-            } else if (rotateState == RotateState.ROTATE_END) {
-                mYRotation = mYRotation - rotationRadians;
-            }
-        }
     }
 
     private class GenericEventCallback implements EventDelegate.EventDelegateCallback {
@@ -1598,60 +1568,8 @@ public GenericEventCallback lol;
         }
 
         @Override
-        public void onTouch(final int source, final Node node, final TouchState touchState, final float[] touchPadPos) {
-            Log.e(TAG, delegateTag + "onTouch " + touchPadPos[0] + "," + touchPadPos[1]);
-        }
-
-        @Override
         public void onControllerStatus(final int source, final ControllerStatus status) {
 
-        }
-
-        @Override
-        public void onSwipe(final int source, final Node node, final SwipeState swipeState) {
-            Log.e(TAG, delegateTag + " onSwipe " + swipeState.toString());
-        }
-
-        @Override
-        public void onScroll(final int source, final Node node, final float x, final float y) {
-            Log.e(TAG, delegateTag + " onScroll " + x + "," +y);
-
-        }
-
-        @Override
-        public void onDrag(final int source, final Node node, final float x, final float y, final float z) {
-            Log.e(TAG, delegateTag +" On drag: " + x + ", " + y + ", " + z);
-
-            Vector converted = node.convertLocalPositionToWorldSpace(new Vector(x, y, z));
-            if (node.getParentNode() != null) {
-                converted = node.getParentNode().convertLocalPositionToWorldSpace(new Vector(x, y, z));
-                Log.e(TAG, delegateTag + " On CONV: " + converted.x + ", " + converted.y + ", " + converted.z);
-            }
-        }
-
-        @Override
-        public void onFuse(final int source, final Node node) {
-            Log.e(TAG, delegateTag + " On fuse");
-        }
-
-        @Override
-        public void onPinch(final int source, final Node node, final float scaleFactor, final PinchState pinchState) {
-            Log.e(TAG, delegateTag + " On pinch");
-        }
-
-        @Override
-        public void onRotate(final int source, final Node node, final float rotationRadians, final RotateState rotateState) {
-            Log.e(TAG, delegateTag + " On rotate");
-        }
-
-        @Override
-        public void onCameraARHitTest(ARHitTestResult[] results) {
-            Log.e(TAG, delegateTag + " On CameraARHitTest");
-        }
-
-        @Override
-        public void onARPointCloudUpdate(ARPointCloud pointCloud) {
-            Log.e(TAG, delegateTag + " On ARPointCloudUpdate");
         }
 
         @Override

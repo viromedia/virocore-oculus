@@ -47,11 +47,15 @@ public:
         VROVector3f joyStickAxis;
         VROVector3f position;
         VROQuaternion rotation;
+        bool isConnected;
+        bool trackingStatus6Dof;
+        int batteryPercentage;
     };
 
-    VROInputControllerOVR(std::shared_ptr<VRODriver> driver) : VROInputControllerBase(driver) {}
+    VROInputControllerOVR(std::shared_ptr<VRODriver> driver);
     virtual ~VROInputControllerOVR(){}
 
+    void processControllerState(std::vector<ControllerSnapShot> snapshots);
     void processInput(std::vector<ControllerSnapShot> snapshots);
     void onProcess(const VROCamera &camera); // TODO: Remove and Hook in camera updates properly.
 
@@ -65,6 +69,10 @@ public:
         return "gearvr";
     }
 
+    std::map<int, ControllerSnapShot> getControllerSnapShots() {
+        return _controllerSnapShots;
+    }
+
 protected:
     std::shared_ptr<VROInputPresenter> createPresenter(std::shared_ptr<VRODriver> driver) {
         return std::make_shared<VROInputPresenterOVR>(driver);
@@ -72,9 +80,6 @@ protected:
 
 private:
     // Set default configurations
-    std::map<int, ControllerSnapShot> _controllerSnapShots = {
-            {536870915, {1, false, false, false, false, false, 0.0f, 0.0f, VROVector3f(), VROVector3f(), VROQuaternion()}},
-            {536870914, {1, false, false, false, false, false, 0.0f, 0.0f, VROVector3f(), VROVector3f(), VROQuaternion()}},
-    };
+    std::map<int, ControllerSnapShot> _controllerSnapShots;
 };
 #endif

@@ -207,7 +207,6 @@ bool VROBodyIKController::bindModel(std::shared_ptr<VRONode> modelRootNode) {
     if (_calibrationEventDelegate == nullptr) {
         _calibrationEventDelegate = std::make_shared<VROBodyIKControllerEventDelegate>(shared_from_this());
         _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, false);
-        _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnPinch, false);
     }
 
     // Set the model in it's original scale needed for determining ratios for automatic resizing.
@@ -314,7 +313,6 @@ void VROBodyIKController::startCalibration(bool manual) {
     // Hook in event delegates for enabling the user to click-to-calibrate.
     if (manual) {
         _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, true);
-        _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnPinch, true);
         _modelRootNode->addConstraint(std::make_shared<VROBillboardConstraint>(VROBillboardAxis::Y));
         _preservedEventDelegate = _modelRootNode->getEventDelegate();
         _modelRootNode->setEventDelegate(_calibrationEventDelegate);
@@ -352,7 +350,6 @@ void VROBodyIKController::finishCalibration(bool manual) {
     // Disable any calibration event delegates when finishing calibration.
     if (manual) {
         _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, false);
-        _calibrationEventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnPinch, false);
         _modelRootNode->setEventDelegate(_preservedEventDelegate);
     }
 

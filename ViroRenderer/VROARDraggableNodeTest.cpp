@@ -66,8 +66,7 @@ void VROARDraggableNodeTest::build(std::shared_ptr<VRORenderer> renderer,
     std::shared_ptr<VRONode> draggableNode = std::make_shared<VRONode>();
     
     _eventDelegate = std::make_shared<VROARDraggableNodeEventDelegate>();
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnDrag, true);
-    
+
     draggableNode->setEventDelegate(_eventDelegate);
     draggableNode->setDragType(VRODragType::FixedToWorld);
     

@@ -361,59 +361,7 @@ public abstract class ViroBaseTest {
         }
 
         @Override
-        public void onTouch(final int source, final Node node, final TouchState touchState, final float[] touchPadPos) {
-            Log.e(TAG, delegateTag + "onTouch " + touchPadPos[0] + "," + touchPadPos[1]);
-        }
-
-        @Override
         public void onControllerStatus(final int source, final ControllerStatus status) {
-
-        }
-
-        @Override
-        public void onSwipe(final int source, final Node node, final SwipeState swipeState) {
-            Log.e(TAG, delegateTag + " onSwipe " + swipeState.toString());
-        }
-
-        @Override
-        public void onScroll(final int source, final Node node, final float x, final float y) {
-            Log.e(TAG, delegateTag + " onScroll " + x + "," + y);
-
-        }
-
-        @Override
-        public void onDrag(final int source, final Node node, final float x, final float y, final float z) {
-            Log.e(TAG, delegateTag + " On drag: " + x + ", " + y + ", " + z);
-            // TODO Differentiate between drag vs click if the user just wanted to move the object and not click it
-            Vector converted = node.convertLocalPositionToWorldSpace(new Vector(x, y, z));
-            if (node.getParentNode() != null) {
-                converted = node.getParentNode().convertLocalPositionToWorldSpace(new Vector(x, y, z));
-                Log.e(TAG, delegateTag + " On CONV: " + converted.x + ", " + converted.y + ", " + converted.z);
-            }
-        }
-
-        @Override
-        public void onFuse(final int source, final Node node) {
-            Log.e(TAG, delegateTag + " On fuse");
-        }
-
-        @Override
-        public void onPinch(final int source, final Node node, final float scaleFactor, final PinchState pinchState) {
-            Log.e(TAG, delegateTag + " On pinch");
-        }
-
-        @Override
-        public void onRotate(final int source, final Node node, final float rotationRadians, final RotateState rotateState) {
-            Log.e(TAG, delegateTag + " On rotate");
-        }
-
-        @Override
-        public void onCameraARHitTest(ARHitTestResult[] results) {
-
-        }
-
-        @Override
-        public void onARPointCloudUpdate(ARPointCloud pointCloud) {
 
         }
 

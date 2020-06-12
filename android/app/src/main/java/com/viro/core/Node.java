@@ -1486,15 +1486,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
     }
 
     /**
-     * Set the time in milliseconds the user must hover over a {@link Node} before a Fuse
-     * event is triggered on an installed {@link FuseListener}.
-     * @param millis The time in milliseconds before a Fuse is registered.
-     */
-    public void setTimeToFuse(float millis) {
-        mEventDelegate.setTimeToFuse(millis);
-    }
-
-    /**
      * Set the {@link GesturePinchListener} to respond when a user pinches with two fingers over
      * this {@link Node} using a screen Controller.
      *
@@ -1605,17 +1596,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
     }
 
     /**
-     * This is used to notify the developer of the current point cloud. Not exposed to the Java API.
-     * @hide
-     */
-    @Override
-    public void onARPointCloudUpdate(ARPointCloud pointCloud) {
-        if (mPointCloudUpdateListener != null) {
-            mPointCloudUpdateListener.onUpdate(pointCloud);
-        }
-    }
-
-    /**
      * @hide
      */
     @Override
@@ -1646,86 +1626,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
     public void onControllerStatus(int source, ControllerStatus status) {
         if (mStatusListener != null) {
             mStatusListener.onControllerStatus(source, status);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onTouch(int source, Node node, TouchState touchState, float[] touchPadPos) {
-        if (mTouchpadTouchListener != null) {
-            mTouchpadTouchListener.onTouch(source, node, touchState, touchPadPos[0], touchPadPos[1]);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onScroll(int source, Node node, float x, float y) {
-        if (mTouchpadScrollListener != null) {
-            mTouchpadScrollListener.onScroll(source, node, x, y);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onSwipe(int source, Node node, SwipeState swipeState) {
-        if (mTouchpadSwipeListener != null) {
-            mTouchpadSwipeListener.onSwipe(source, node, swipeState);
-        }
-    }
-
-    /**
-     * @hide
-     */
-    @Override
-    public void onDrag(int source, Node node, float x, float y, float z) {
-        if (mDragListener != null) {
-            Vector local = new Vector(x, y, z);
-
-            // We have to convert the local drag coordinates to world space
-            Vector world = new Vector(x, y, z);
-            if (node != null && node.getParentNode() != null) {
-                world = node.getParentNode().convertLocalPositionToWorldSpace(local);
-            }
-            mDragListener.onDrag(source, node, world, local);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onFuse(int source, Node node) {
-        if (mFuseListener != null) {
-            mFuseListener.onFuse(source, node);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onPinch(int source, Node node, float scaleFactor, PinchState pinchState) {
-        if (mGesturePinchListener != null) {
-            mGesturePinchListener.onPinch(source, node, scaleFactor, pinchState);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onRotate(int source, Node node, float rotateRadians, RotateState rotateState) {
-        if (mGestureRotateListener != null) {
-            mGestureRotateListener.onRotate(source, node, rotateRadians, rotateState);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onCameraARHitTest(ARHitTestResult[] results) {
-        if (mHitTestListener != null) {
-            mHitTestListener.onHitTestFinished(results);
         }
     }
 

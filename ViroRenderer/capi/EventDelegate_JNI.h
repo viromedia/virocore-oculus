@@ -58,27 +58,24 @@ public:
     }
 
     /*
+     virtual void onButtonEvent(std::vector<ButtonEvent> &events)
+     virtual void onHover(std::vector<HoverEvent> &events)
+     virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events)
+     virtual void onWeightedTriggerEvent(std::vector<TriggerEvent> &events)
+     virtual void onControllerStatus(std::vector<ControllerStat> status)
+     virtual void onMove(std::vector<MoveEvent> &events)
+     */
+
+    /*
      Java event delegates to be triggered across the JNI bridge.
      */
     void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position);
     void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position);
-    void onTouch(int source, std::shared_ptr<VRONode> node, TouchState touchState, float x, float y);
     void onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec);
-    void onControllerStatus(int source, ControllerStatus status);
-    void onGazeHit(int source, std::shared_ptr<VRONode> node, float distance, VROVector3f hitLocation);
-    void onSwipe(int source, std::shared_ptr<VRONode> node, SwipeState swipeState);
-    void onScroll(int source, std::shared_ptr<VRONode> node, float x, float y);
-    void onDrag(int source, std::shared_ptr<VRONode> node, VROVector3f newPosition);
-    void onFuse(int source, std::shared_ptr<VRONode> node, float timeToFuseRatio);
-    void onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState);
-    void onRotate(int source, std::shared_ptr<VRONode> node, float rotateDegrees, RotateState rotateState);
-    void onCameraARHitTest(std::vector<std::shared_ptr<VROARHitTestResult>> results);
-    void onARPointCloudUpdate(std::shared_ptr<VROARPointCloud> pointCloud);
+    void onControllerStatus(std::vector<ControllerStat> status);
     void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up);
 
-
-
-        private:
+private:
     VRO_OBJECT _javaObject;
 };
 

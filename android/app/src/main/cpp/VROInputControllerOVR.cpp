@@ -24,21 +24,73 @@
 //  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "VROInputControllerOVR.h"
+#include <inttypes.h>
 
 enum ClickState : int;
+
+VROInputControllerOVR::VROInputControllerOVR(std::shared_ptr<VRODriver> driver) :
+        VROInputControllerBase(driver) {
+    // Set default snapshots.
+    _controllerSnapShots = {
+            {ViroOculusInputEvent::ControllerRightId, {ViroOculusInputEvent::ControllerRightId,
+                                                       false, false, false, false, false,
+                                                       0.0f, 0.0f,
+                                                       VROVector3f(), VROVector3f(), VROQuaternion(),
+                                                       false, 0}},
+            {ViroOculusInputEvent::ControllerLeftId, {ViroOculusInputEvent::ControllerRightId,
+                                                       false, false, false, false, false,
+                                                       0.0f, 0.0f,
+                                                       VROVector3f(), VROVector3f(), VROQuaternion(),
+                                                       false, 0}}};
+}
+
+void VROInputControllerOVR::processControllerState(std::vector<ControllerSnapShot> snapShots) {
+    // Refresh the connected state of the controller.
+    std::map<int, ControllerSnapShot>::iterator it;
+    for ( it = _controllerSnapShots.begin(); it != _controllerSnapShots.end(); it++ ) {
+        it->second.isConnected = false;
+    }
+    for (ControllerSnapShot snapShot : snapShots) {
+        int deviceID = snapShot.deviceID;
+        _controllerSnapShots[deviceID].isConnected = true;
+        _controllerSnapShots[deviceID].trackingStatus6Dof = snapShot.trackingStatus6Dof;
+        _controllerSnapShots[deviceID].batteryPercentage = snapShot.batteryPercentage;
+    }
+
+    // Create the controller stat data with which to inform our delegates
+    std::vector<VROEventDelegate::ControllerStat> allControllerStats;
+    for ( it = _controllerSnapShots.begin(); it != _controllerSnapShots.end(); it++ ) {
+        ControllerSnapShot snap = it->second;
+        allControllerStats.push_back({snap.deviceID, snap.isConnected, snap.trackingStatus6Dof, snap.batteryPercentage});
+    }
+
+    // Notify all delegates
+    for (std::shared_ptr<VROEventDelegate> delegate : _delegates) {
+        delegate->onControllerStatus(allControllerStats);
+    }
+}
 
 void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapShots){
     std::vector<VROEventDelegate::ButtonEvent> allButtonEvents;
     std::vector<VROEventDelegate::ThumbStickEvent> allThumbStickEvents;
     std::vector<VROEventDelegate::MoveEvent> allMoveEvents;
+    std::vector<VROEventDelegate::TriggerEvent> allWeightedTriggerEvents;
+    processControllerState(snapShots);
+
+    // Do nothing if we have no data
+    if (snapShots.size() == 0) {
+        return;
+    }
 
     for (ControllerSnapShot snapShot : snapShots) {
         int deviceID = snapShot.deviceID;
-        if (_controllerSnapShots.find(deviceID) == _controllerSnapShots.end()){
-            pwarn("Controller is not supported");
+
+        pwarn("Controller snapShot.deviceID : %" PRIu32"\n", snapShot.deviceID);
+        if (_controllerSnapShots.find(deviceID) == _controllerSnapShots.end()) {
+            pwarn("Controller is not supported size : %d", _controllerSnapShots.size());
             continue;
         }
-
+        _controllerSnapShots[deviceID].isConnected = true;
         ControllerSnapShot &currentSnap = _controllerSnapShots[deviceID];
 
         // Process through all the buttons, notify if changed.
@@ -76,10 +128,18 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
         // Process through all Joystick data.
         float d = currentSnap.joyStickAxis.distance(snapShot.joyStickAxis);
         if (currentSnap.buttonJoyStickPressed != snapShot.buttonJoyStickPressed || d > 0) {
-            pwarn("Daniel distance is : %f", d);
             // Process through all Controller Status data.
             allThumbStickEvents.push_back({deviceID, ViroOculusInputEvent::Thumbstick,
                                            snapShot.buttonJoyStickPressed, snapShot.joyStickAxis});
+        }
+
+        // Group together all trigger weighted events
+        if (currentSnap.triggerIndexWeight != snapShot.triggerIndexWeight) {
+            allWeightedTriggerEvents.push_back({deviceID, ViroOculusInputEvent::Trigger_Index, snapShot.triggerIndexWeight});
+        }
+
+        if (currentSnap.triggerHandWeight != snapShot.triggerHandWeight) {
+            allWeightedTriggerEvents.push_back({deviceID, ViroOculusInputEvent::Trigger_Index, snapShot.triggerHandWeight});
         }
 
         // Process through all controller positional data.
@@ -87,9 +147,6 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
             !currentSnap.rotation.equals(snapShot.rotation)) {
             allMoveEvents.push_back({deviceID, deviceID, snapShot.position, snapShot.rotation});
         }
-
-        // Finally, save a version of the processed snapshot to cache.
-        _controllerSnapShots[deviceID] = snapShot;
     }
 
     // First update positional transforms (used for hit testing).
@@ -103,6 +160,19 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
     if (allButtonEvents.size()> 0) {
        // pwarn("Daniel process onbutton event");
         VROInputControllerBase::onButtonEvent(allButtonEvents);
+    }
+
+    // Trigger Oculus specific trigger delegates here.
+    if (allWeightedTriggerEvents.size() > 0) {
+        for (std::shared_ptr<VROEventDelegate> delegate : _delegates) {
+            delegate->onWeightedTriggerEvent(allWeightedTriggerEvents);
+        }
+    }
+
+    if (allThumbStickEvents.size() > 0) {
+        for (std::shared_ptr<VROEventDelegate> delegate : _delegates) {
+            delegate->onThumbStickEvent(allThumbStickEvents);
+        }
     }
 }
 

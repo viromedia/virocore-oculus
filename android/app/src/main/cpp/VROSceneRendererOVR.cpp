@@ -47,6 +47,7 @@
 #include "VROInputControllerOVR.h"
 #include <VROTime.h>
 #include <VrApi_Types.h>
+#include <inttypes.h>
 
 #pragma mark - OVR System
 
@@ -971,8 +972,8 @@ static void ovrApp_HandleVrModeChanges(ovrApp* app) {
 
 static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
     bool backButtonDownThisFrame = false;
-
     std::vector<VROInputControllerOVR::ControllerSnapShot> snapShots;
+
     for (int i = 0;; i++) {
         ovrInputCapabilityHeader cap;
         ovrResult result = vrapi_EnumerateInputDevices(app->Ovr, i, &cap);
@@ -985,11 +986,24 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
             return;
         }
 
+        VROInputControllerOVR::ControllerSnapShot snapShot;
+        ovrTracking trackingState;
+        snapShot.trackingStatus6Dof = false;
+        result = vrapi_GetInputTrackingState(app->Ovr, cap.DeviceID, 0, &trackingState);
+        if (result == ovrSuccess || result == ovrSuccess_BoundaryInvalid || result == ovrSuccess_EventUnavailable) {
+            if (trackingState.Status & VRAPI_TRACKING_STATUS_POSITION_TRACKED &&
+                    trackingState.Status & VRAPI_TRACKING_STATUS_POSITION_VALID) {
+                snapShot.trackingStatus6Dof = true;
+            }
+        }
+
         ovrInputStateTrackedRemote trackedRemoteState;
         trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
         result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &trackedRemoteState.Header);
-        VROInputControllerOVR::ControllerSnapShot snapShot;
         snapShot.deviceID = cap.DeviceID;
+        snapShot.batteryPercentage = trackedRemoteState.BatteryPercentRemaining;
+        pwarn("Controller cap.DeviceID: %" PRIu32"\n snapShot.deviceID %d", cap.DeviceID, snapShot.deviceID);
+
         if (result == ovrSuccess) {
             // Grab the buttons
             snapShot.buttonAPressed = trackedRemoteState.Buttons & ovrButton_A;

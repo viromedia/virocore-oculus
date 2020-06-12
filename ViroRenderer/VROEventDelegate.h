@@ -63,11 +63,6 @@ public:
         OnThumbStick = 4,
         OnControllerStatus = 5,
         OnCameraTransformUpdate = 6,
-
-        OnPinch = 99,
-        OnDrag = 100,
-        OnRotate = 200,
-        OnFuse = 300,
     };
 
     /*
@@ -78,9 +73,6 @@ public:
         ClickUp = 2,
         Clicked = 3
     };
-
-    //////////
-
 
     struct ButtonEvent {
         int deviceId;
@@ -117,59 +109,18 @@ public:
         VROVector3f axisLocation;
     };
 
-
-
-    /////////
-    /*
-     TouchState enum describing the OnTouch Event action.
-     */
-    enum TouchState {
-        TouchDown = 1,
-        TouchDownMove = 2,
-        TouchUp = 3,
-    };
-    
-    enum PinchState {
-        PinchStart = 1,
-        PinchMove = 2,
-        PinchEnd = 3,
-    };
-    
-    enum RotateState {
-        RotateStart = 1,
-        RotateMove = 2,
-        RotateEnd = 3,
+    struct TriggerEvent {
+        int deviceId;
+        int source;
+        float weight;
     };
 
-    enum SwipeState {
-        SwipeUp = 1,
-        SwipeDown = 2,
-        SwipeLeft = 3,
-        SwipeRight = 4
+    struct ControllerStat {
+        int deviceId;
+        bool isConnected;
+        bool is6Dof;
+        int batteryPercentage;
     };
-
-    enum DragState {
-        Start = 1,
-        Dragging = 2,
-        End = 3
-    };
-
-    /*
-     Enum ControllerStatus types describing the availability status of the
-     current input controller.
-     
-     IMPORTANT: Enum values should match EventSource within EventDelegateJni.java
-     as the standard format to be passed through the JNI layer.
-     Do Not change the Enum Values!!! Simply add additional event types as need be.
-     */
-    enum ControllerStatus {
-        Unknown = 1,
-        Connecting = 2,
-        Connected = 3,
-        Disconnected = 4,
-        Error = 5
-    };
-
 
     // Disable all event callbacks by default
     VROEventDelegate() {
@@ -217,8 +168,17 @@ public:
         //No-op
     }
 
+    virtual void onWeightedTriggerEvent(std::vector<TriggerEvent> &events) {
+        //No-op
+    }
+
+    virtual void onControllerStatus(std::vector<ControllerStat> status) {
+        //No-op
+    }
+
     /*
-    Delegate events for the listening of single events. Meant for simple API usage and backwards Viro Compatibility.
+     Delegate events for the listening of single events, from the old API bridge.
+     Meant for simple API usage and backwards Viro Compatibility.
      */
     virtual void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position) {
         //No-op
@@ -227,77 +187,15 @@ public:
     virtual void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position) {
         //No-op
     }
-    
-    virtual void onTouch(int source, std::shared_ptr<VRONode> node, TouchState touchState, float x, float y) {
+
+    virtual void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up) {
         //No-op
     }
 
     virtual void onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec) {
         //No-op
     }
-
-    virtual void onControllerStatus(int source, ControllerStatus status) {
-        //No-op
-    }
-
-    virtual void onGazeHit(int source, std::shared_ptr<VRONode> node, const VROHitTestResult &hit) {
-        //No-op
-    }
-
-    virtual void onDrag(int source, std::shared_ptr<VRONode> node, VROVector3f newPosition) {
-        //No-op
-    }
-
-    virtual void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up) {
-        //No-op
-    }
-
-    void setTimeToFuse(float durationInMillis){
-        _timeToFuseDuration = durationInMillis;
-    }
-
-    float getTimeToFuse(){
-        return _timeToFuseDuration;
-    }
-
-    ///// REMOVE ///////
-
-
-    virtual void onFuse(int source, std::shared_ptr<VRONode> node, float timeToFuseRatio) {
-        //No-op
-    }
-
-    virtual void onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
-        //No-op
-    }
-
-    virtual void onRotate(int source, std::shared_ptr<VRONode> node, float rotationRadians, RotateState rotateState) {
-        //No-op
-    }
-
-    virtual void onCameraARHitTest(std::vector<std::shared_ptr<VROARHitTestResult>> results) {
-        //No-op
-    }
-
-    virtual void onARPointCloudUpdate(std::shared_ptr<VROARPointCloud> pointCloud) {
-        //No-op
-    }
-
-    virtual void onSwipe(int source, std::shared_ptr<VRONode> node, SwipeState swipeState) {
-        //No-op
-    }
-
-    virtual void onScroll(int source, std::shared_ptr<VRONode> node, float x, float y) {
-        //No-op
-    }
 private:
-    
     std::map<VROEventDelegate::EventAction , bool> _enabledEventMap;
-
-    /*
-     Duration used to count down from for triggering onFuse events, in milliseconds.
-     Defaults to 2000 milliseconds.
-     */
-    float _timeToFuseDuration = 2000;
 };
 #endif

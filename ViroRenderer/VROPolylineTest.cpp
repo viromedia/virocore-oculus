@@ -95,7 +95,6 @@ void VROPolylineTest::build(std::shared_ptr<VRORenderer> renderer,
     _eventDelegate = std::make_shared<VROPolylineEventDelegate>(_polyline);
     _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, true);
     _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnMove, true);
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnDrag, true);
     surfaceNode->setEventDelegate(_eventDelegate);
     
     std::shared_ptr<VRONodeCamera> camera = std::make_shared<VRONodeCamera>();

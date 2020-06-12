@@ -230,14 +230,6 @@ void VROInputControllerBase::onHover(std::vector<VROEventDelegate::MoveEvent> &e
     }
 }
 
-void VROInputControllerBase::onThumbStickEvent(std::vector<VROEventDelegate::ThumbStickEvent> &events) {
-    // Notify all internal delegates of Clicked events.
-    for (std::shared_ptr<VROEventDelegate> delegate : _delegates) {
-        delegate->onThumbStickEvent(events);
-    }
-}
-
-
 void VROInputControllerBase::notifyCameraTransform(const VROCamera &camera) {
     if (_scene) {
         std::shared_ptr<VROEventDelegate> delegate = _scene->getRootNode()->getEventDelegate();

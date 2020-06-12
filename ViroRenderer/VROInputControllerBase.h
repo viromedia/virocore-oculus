@@ -119,7 +119,6 @@ protected:
     void onButtonEvent(std::vector<VROEventDelegate::ButtonEvent> &events);
     void onMove(std::vector<VROEventDelegate::MoveEvent> &events, bool shouldUpdateHitTests);
     void onHover(std::vector<VROEventDelegate::MoveEvent> &events);
-    void onThumbStickEvent(std::vector<VROEventDelegate::ThumbStickEvent> &events);
 
     /*
      Below are Viro-specific input events to be trigged by derived Input Controller
@@ -146,7 +145,11 @@ protected:
      */
     void updateHitNode(const VROCamera &camera, VROVector3f origin, VROVector3f ray);
 
-    struct Input{
+    /*
+     Event state for tracking business logic that is determined across multiple
+     input events fed into the VROInputControllerBase (like Click and Hover).
+     */
+    struct EventState {
 
         /*
          Last result that was returned from the hit test.
@@ -163,7 +166,10 @@ protected:
 
     } TouchControllerLeft, TouchControllerRight;
 
-    std::map<int, Input> _deviceControllerState;
+    /*
+     Event states are mapped to a deviceId input.
+     */
+    std::map<int, EventState> _deviceControllerState;
 
     /*
      UI presenter for this input controller.
@@ -175,13 +181,13 @@ protected:
      to an element that is outside the scene tree.
      */
     std::set<std::shared_ptr<VROEventDelegate>> _delegates;
-    
-    std::shared_ptr<VROScene> _scene;
 
     /*
      Returns the hit test result for the closest node that was hit.
      */
     VROHitTestResult hitTest(VROVector3f origin, VROVector3f ray, bool boundsOnly);
+
+    std::shared_ptr<VROScene> _scene;
 private:
 
     /*

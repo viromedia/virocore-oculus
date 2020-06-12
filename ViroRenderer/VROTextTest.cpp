@@ -172,8 +172,6 @@ void VROTextTest::build(std::shared_ptr<VRORenderer> renderer,
     
     _eventDelegate = std::make_shared<VROTextEventDelegate>(this);
     _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, true);
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnPinch, true);
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnRotate, true);
     rootNode->setEventDelegate(_eventDelegate);
 }
 

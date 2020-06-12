@@ -71,7 +71,6 @@ void VROIKTest::build(std::shared_ptr<VRORenderer> renderer,
     rootNode->addLight(ambient);
     _eventDelegate = std::make_shared<VROIKEventDelegate>(this);
     _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnClick, true);
-    _eventDelegate->setEnabledEvent(VROEventDelegate::EventAction::OnDrag, true);
 
     // Create a polyline for drawing the rig skeleton
     std::shared_ptr<VROMaterial> pencilMaterial = std::make_shared<VROMaterial>();
