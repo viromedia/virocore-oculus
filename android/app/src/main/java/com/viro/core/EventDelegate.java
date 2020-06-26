@@ -32,7 +32,12 @@
  */
 package com.viro.core;
 
+import android.util.Log;
+import android.widget.Button;
+
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,6 +59,14 @@ public class EventDelegate {
      * @hide
      */
     public interface EventDelegateCallback {
+        void onClick(ArrayList<ButtonEvent> events);
+        void onHover(ArrayList<HoverEvent> events);
+        void onThumbStickEvent(ArrayList<ThumbStickEvent> events);
+        void onWeightedTriggerEvent(ArrayList<TriggerEvent> events);
+        void onMove(ArrayList<MoveEvent> events);
+        void onControllerStatus(ArrayList<ControllerStatus> events);
+
+        // Legacy APIs
         /**
          * @hide
          */
@@ -62,10 +75,6 @@ public class EventDelegate {
          * @hide
          */
         void onClick(int source, Node node, ClickState clickState, float hitLoc[]);
-         /**
-         * @hide
-         */
-        void onControllerStatus(int source, ControllerStatus status);
         /**
          * @hide
          */
@@ -136,12 +145,13 @@ public class EventDelegate {
      * VROEventDelegate.h
      */
     public enum EventAction {
-        ON_HOVER(1),
-        ON_CLICK(2),
-        ON_MOVE(3),
-        ON_THUMBSTICK(4),
-        ON_CONTROLLER_STATUS(5),
-        ON_CAMERA_TRANSFORM_UPDATE(14);
+        ON_HOVER(1),                        // Node based
+        ON_CLICK(2),                        // Node based
+        ON_MOVE(3),                         // Controller based
+        ON_THUMBSTICK(4),                   // Controller based
+        ON_TRIGGER(5),                          // Controller based
+        ON_CONTROLLER_STATUS(6),            // Controller based
+        ON_CAMERA_TRANSFORM_UPDATE(7);     // Controller based
 
         public final int mTypeId;
 
@@ -160,11 +170,100 @@ public class EventDelegate {
         }
     }
 
+    public class ButtonEvent {
+        public int deviceId; // TODO make final?
+        public int source;
+        public int hitNodeId;
+        public ClickState state;
+        public Vector intersecPos;
+        private int clickIntState;
+    }
+
+    public class HoverEvent {
+        public int deviceId;
+        public int source;
+        public boolean isHovering;
+        Vector intersecPos;
+
+    }
+
+    public class ThumbStickEvent {
+        public int deviceId;
+        public int source;
+        public boolean isPressed;
+        public Vector axisLocation;
+    }
+
+    public class TriggerEvent {
+        public int deviceId;
+        public int source;
+        public float weight;
+    }
+
+    public class MoveEvent {
+        public int deviceId;
+        public int source;
+        public Vector pos;
+        public Quaternion rot;
+    }
+    public class ControllerStatus {
+        public int deviceId;
+        public boolean isConnected;
+        public boolean is6Dof;
+        public int batteryPercentage;
+    }
+
     /*
      Callback functions called from JNI (triggered from native)
      that then trigger the corresponding EventDelegateCallback (mDelegate)
      that has been set through setEventDelegateCallback().
      */
+    void onClick(ButtonEvent[] events) {
+        //Log.e("Daniel"," Button event Recieved from the JNI " + events.length);
+        for (ButtonEvent event : events) {
+            event.state = ClickState.valueOf(event.clickIntState);
+        }
+
+        if (mDelegate != null && mDelegate.get() != null) {
+            //Log.e("Daniel"," Button event TRIGGERd from the JNI " + events.length);
+            mDelegate.get().onClick(new ArrayList<ButtonEvent>(Arrays.asList(events)));
+        }
+    }
+
+    void onHover(HoverEvent[] events) {
+        if (mDelegate != null && mDelegate.get() != null) {
+            mDelegate.get().onHover(new ArrayList<HoverEvent>(Arrays.asList(events)));
+        }
+    }
+
+    void onThumbStickEvent(ThumbStickEvent[] events) {
+        Log.e("Daniel"," onThumbStickEvent Recieved from the JNI " + events.length);
+        if (mDelegate != null && mDelegate.get() != null) {
+            mDelegate.get().onThumbStickEvent(new ArrayList<ThumbStickEvent>(Arrays.asList(events)));
+        }
+    }
+
+    void onWeightedTriggerEvent(TriggerEvent[] events) {
+        Log.e("Daniel"," onWeightedTriggerEvent Recieved from the JNI " + events.length);
+        if (mDelegate != null && mDelegate.get() != null) {
+            mDelegate.get().onWeightedTriggerEvent(new ArrayList<TriggerEvent>(Arrays.asList(events)));
+        }
+    }
+
+    void onMove(MoveEvent[] events) {
+        Log.e("Daniel"," onMove Recieved from the JNI " + events.length);
+        if (mDelegate != null && mDelegate.get() != null) {
+            mDelegate.get().onMove(new ArrayList<MoveEvent>(Arrays.asList(events)));
+        }
+    }
+
+    void onControllerStatus(ControllerStatus[] events) {
+        if (mDelegate != null && mDelegate.get() != null) {
+            mDelegate.get().onControllerStatus(new ArrayList<ControllerStatus>(Arrays.asList(events)));
+        }
+    }
+
+    //// LEGACY ////
 
     /**
      * @hide
@@ -184,15 +283,6 @@ public class EventDelegate {
             mDelegate.get().onClick(source, node, ClickState.valueOf(clickState), position);
         }
     }
-    /**
-     * @hide
-     */
-    void onControllerStatus(int source, int status) {
-        if (mDelegate != null && mDelegate.get() != null) {
-            mDelegate.get().onControllerStatus(source, ControllerStatus.valueOf(status));
-        }
-    }
-
     /**
      * @hide
      */

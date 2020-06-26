@@ -241,17 +241,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
     private EventDelegate mEventDelegate;
     private ClickListener mClickListener;
     private HoverListener mHoverListener;
-    private ControllerStatusListener mStatusListener;
-    private TouchpadTouchListener mTouchpadTouchListener;
-    private TouchpadSwipeListener mTouchpadSwipeListener;
-    private TouchpadScrollListener mTouchpadScrollListener;
-    private DragListener mDragListener;
-    private FuseListener mFuseListener;
-    private GesturePinchListener mGesturePinchListener;
-    private GestureRotateListener mGestureRotateListener;
-    private ARHitTestListener mHitTestListener;
-    private PointCloudUpdateListener mPointCloudUpdateListener;
-
     /**
      * Construct a new Node centered at the origin, with no geometry.
      */
@@ -1360,216 +1349,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
     }
 
     /**
-     * Set the {@link TouchpadTouchListener} to respond when a user touches or moves across
-     * a touchpad Controller while hovering over this {@link Node}.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setTouchpadTouchListener(TouchpadTouchListener listener) {
-        mTouchpadTouchListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_TOUCH, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_TOUCH, false);
-        }
-    }
-
-    /**
-     * Get the {@link TouchpadTouchListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public TouchpadTouchListener getTouchpadTouchListener() {
-        return mTouchpadTouchListener;
-    }
-
-    /**
-     * Set the {@link TouchpadSwipeListener} to respond when a user swipes across a touchpad
-     * Controller while hovering over this {@link Node}.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setTouchpadSwipeListener(TouchpadSwipeListener listener) {
-        mTouchpadSwipeListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SWIPE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SWIPE, false);
-        }
-    }
-
-    /**
-     * Get the {@link TouchpadSwipeListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public TouchpadSwipeListener getTouchpadSwipeListener() {
-        return mTouchpadSwipeListener;
-    }
-
-    /**
-     * Set the {@link TouchpadScrollListener} to respond when a user scrolls a touchpad while
-     * hovering over a {@link Node}.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setTouchpadScrollListener(TouchpadScrollListener listener) {
-        mTouchpadScrollListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SCROLL, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SCROLL, false);
-        }
-    }
-
-    /**
-     * Get the {@link TouchpadScrollListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public TouchpadScrollListener getTouchpadScrollListener() {
-        return mTouchpadScrollListener;
-    }
-
-    /**
-     * Set the {@link DragListener} to respond when a user attempts to drag this {@link Node} by
-     * pressing over it and moving the Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setDragListener(DragListener listener) {
-        mDragListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_DRAG, false);
-        }
-    }
-
-    /**
-     * Get the {@link DragListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public DragListener getDragListener() {
-        return mDragListener;
-    }
-
-    /**
-     * Set the {@link FuseListener} to respond when a user hovers over this {@link Node} for
-     * {@link #setTimeToFuse(float)} milliseconds. When this is set, the fuse 'reticle' will
-     * be enabled for this Node.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setFuseListener(FuseListener listener) {
-        mFuseListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_FUSE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_FUSE, false);
-        }
-    }
-
-    /**
-     * Get the {@link FuseListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public FuseListener getFuseListener() {
-        return mFuseListener;
-    }
-
-    /**
-     * Set the {@link GesturePinchListener} to respond when a user pinches with two fingers over
-     * this {@link Node} using a screen Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setGesturePinchListener(GesturePinchListener listener) {
-        mGesturePinchListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_PINCH, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_PINCH, false);
-        }
-    }
-
-    /**
-     * Get the {@link GesturePinchListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public GesturePinchListener getGesturePinchListener() {
-        return mGesturePinchListener;
-    }
-
-    /**
-     * Set the {@link GestureRotateListener} to respond when a user rotates with two fingers over
-     * this {@link Node} using a screen Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setGestureRotateListener(GestureRotateListener listener) {
-        mGestureRotateListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_ROTATE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_ROTATE, false);
-        }
-    }
-
-    /**
-     * Set the {@link PointCloudUpdateListener} to use for receiving point cloud updates. The provided listener will
-     * receive an updated {@link ARPointCloud} as the point cloud updates.
-     *
-     * @param listener The {@link PointCloudUpdateListener} to use to receive point cloud updates.
-     * @hide
-     */
-    protected void setPointCloudUpdateListener(PointCloudUpdateListener listener) {
-        mPointCloudUpdateListener = listener;
-        if(listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_AR_POINT_CLOUD_UPDATE, true);
-        } else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_AR_POINT_CLOUD_UPDATE, false);
-        }
-    }
-
-    /**
-     * Set the {@link ARHitTestListener} to respond to AR hit test events that are fired from the
-     * the camera into the scene as the user looks around within his AR environment.
-     *
-     * This is used for real-time hit point testing, only by the VRTARScene. Not exposed to Java API.
-     *
-     * @hide
-     */
-    void setARHitTestListener(ARHitTestListener listener){
-        mHitTestListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_CAMERA_AR_HIT_TEST, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_CAMERA_AR_HIT_TEST, false);
-        }
-    }
-
-    /**
-     * Get the {@link GestureRotateListener} that is currently installed for this {@link Node}.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public GestureRotateListener getGestureRotateListener() {
-        return mGestureRotateListener;
-    }
-
-    /**
      * Convert the given position from the coordinate space of this Node into the world coordinate
      * system. This Node's coordinate system is the coordinate system in which the children of this
      * Node are positioned. The world coordinate system is the global coordinate space; e.g., the
@@ -1595,6 +1374,42 @@ public class Node implements EventDelegate.EventDelegateCallback {
         return new Vector(nativeConvertWorldPositionToLocalSpace(mNativeRef, worldPosition.x, worldPosition.y, worldPosition.z));
     }
 
+    @Override
+    public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+        if (mClickListener != null) {
+            mClickListener.onClick(events);
+        }
+    }
+
+    @Override
+    public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
+        if (mHoverListener != null) {
+            mHoverListener.onHover(events);
+        }
+    }
+
+    @Override
+    public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
+        // No-op. Event is not node based.
+    }
+
+    @Override
+    public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
+        // No-op. Event is not node based.
+    }
+
+    @Override
+    public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
+        // No-op. Event is not node based.
+    }
+    /**
+     * @hide
+     */
+    @Override
+    public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events){
+        // No-op. Event is not node based.
+    }
+
     /**
      * @hide
      */
@@ -1617,15 +1432,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
         if (mHoverListener != null) {
             Vector hitLocVec = hitLoc != null ? new Vector(hitLoc) : null;
             mHoverListener.onHover(source, node, isHovering, hitLocVec);
-        }
-    }
-    /**
-     * @hide
-     */
-    @Override
-    public void onControllerStatus(int source, ControllerStatus status) {
-        if (mStatusListener != null) {
-            mStatusListener.onControllerStatus(source, status);
         }
     }
 
@@ -2093,76 +1899,6 @@ public class Node implements EventDelegate.EventDelegateCallback {
          */
         public NodeBuilder hoverListener(HoverListener hoverListener) {
             node.setHoverListener(hoverListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setTouchpadTouchListener(TouchpadTouchListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder touchpadTouchListener(TouchpadTouchListener touchpadTouchListener) {
-            node.setTouchpadTouchListener(touchpadTouchListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setTouchpadSwipeListener(TouchpadSwipeListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder touchpadSwipeListener(TouchpadSwipeListener touchpadSwipeListener) {
-            node.setTouchpadSwipeListener(touchpadSwipeListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setTouchpadScrollListener(TouchpadScrollListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder touchpadScrollListener(TouchpadScrollListener touchpadScrollListener) {
-            node.setTouchpadScrollListener(touchpadScrollListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setDragListener(DragListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder dragListener(DragListener dragListener) {
-            node.setDragListener(dragListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setFuseListener(FuseListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder fuseListener(FuseListener fuseListener) {
-            node.setFuseListener(fuseListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setGesturePinchListener(GesturePinchListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder gesturePinchListener(GesturePinchListener gesturePinchListener) {
-            node.setGesturePinchListener(gesturePinchListener);
-            return (B) this;
-        }
-
-        /**
-         * Refer to {@link Node#setGestureRotateListener(GestureRotateListener)}.
-         *
-         * @return This builder.
-         */
-        public NodeBuilder gestureRotateListener(GestureRotateListener gestureRotateListener) {
-            node.setGestureRotateListener(gestureRotateListener);
             return (B) this;
         }
 

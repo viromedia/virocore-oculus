@@ -61,8 +61,9 @@ public:
         OnClick = 2,
         OnMove = 3,
         OnThumbStick = 4,
-        OnControllerStatus = 5,
-        OnCameraTransformUpdate = 6,
+        OnTrigger = 5,
+        OnControllerStatus = 6,
+        OnCameraTransformUpdate = 7,
     };
 
     /*
@@ -165,15 +166,15 @@ public:
     }
 
     virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events) {
-        //No-op
+        // No-op
     }
 
     virtual void onWeightedTriggerEvent(std::vector<TriggerEvent> &events) {
-        //No-op
+        // No-op
     }
 
     virtual void onControllerStatus(std::vector<ControllerStat> status) {
-        //No-op
+        // No-op
     }
 
     /*

@@ -214,7 +214,8 @@ public:
      not for rendering.
      */
     void prepareFrame(int frame, VROViewport viewport, VROFieldOfView fov,
-                      VROMatrix4f headRotation, VROMatrix4f projection, std::shared_ptr<VRODriver> driver);
+                      VROMatrix4f headRotation, VROVector3f headPosition,
+                      VROMatrix4f projection, std::shared_ptr<VRODriver> driver);
     
     /*
      Render the designated eye. Note how the eyeView matrix differs from headRotation in
@@ -349,7 +350,7 @@ private:
     void initRenderer(std::shared_ptr<VRODriver> driver);
   
 #pragma mark - [Private] Camera and Visibility
-    
+
     /*
      The node that owns the VRONodeCamera that will determine the point of
      view from which we display the scene.
@@ -357,7 +358,8 @@ private:
     std::shared_ptr<VRONode> _pointOfView;
 
     VROCamera updateCamera(const VROViewport &viewport, const VROFieldOfView &fov,
-                           const VROMatrix4f &headRotation, const VROMatrix4f &projection);
+                           const VROMatrix4f &headRotation,
+                           const VROVector3f &headPosition, const VROMatrix4f &projection);
 
     /*
      TODO: Revisit unifying Camera APIs in VIRO-2235.

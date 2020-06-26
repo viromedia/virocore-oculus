@@ -1023,24 +1023,6 @@ public class ViroViewARCore extends ViroView {
     }
 
     /**
-     * Set the {@link ARHitTestListener}. When an ARHitTestListener is registered, it will be
-     * continually notified of hit tests from the camera's forward vector into the AR environment.
-     * This is an efficient way to be notified of real-world objects intersecting the center of
-     * the user's AR screen.
-
-     *
-     * @param hitTestListener The callback that will receive the {@link ARHitTestResult}
-     *                 results.
-     */
-    public void setCameraARHitTestListener(ARHitTestListener hitTestListener){
-        if (mCurrentScene == null) {
-            return;
-        }
-
-        mCurrentScene.getRootNode().setARHitTestListener(hitTestListener);
-    }
-
-    /**
      * Install a {@link CameraImageListener} which will be invoked each frame as the AR camera
      * image is updated. This can be used to perform additional processing on the real-world
      * images before they are rendered to the device.

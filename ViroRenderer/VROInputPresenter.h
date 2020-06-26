@@ -61,7 +61,7 @@ public:
         _eventDelegateWeak = delegate;
     }
 
-    virtual void onButtonEvent(std::vector<ButtonEvent> events) {
+    virtual void onButtonEvent(std::vector<ButtonEvent>  &events) {
         passert_thread(__func__);
         
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
@@ -70,9 +70,8 @@ public:
         }
     }
 
-    virtual void onMove(std::vector<MoveEvent> events) {
+    virtual void onMove(std::vector<MoveEvent> &events) {
         passert_thread(__func__);
-       // _lastKnownForward = forwardVec;
 
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
         if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnMove)){
@@ -86,6 +85,33 @@ public:
         std::shared_ptr<VROEventDelegate> delegate = getDelegate();
         if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnHover)){
             delegate->onHover(events);
+        }
+    }
+
+    virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events) {
+        passert_thread(__func__);
+
+        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
+        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnThumbStick)){
+            delegate->onThumbStickEvent(events);
+        }
+    }
+
+    virtual void onWeightedTriggerEvent(std::vector<TriggerEvent> &events) {
+        passert_thread(__func__);
+
+        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
+        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnTrigger)){
+            delegate->onWeightedTriggerEvent(events);
+        }
+    }
+
+    virtual void onControllerStatus(std::vector<ControllerStat> events) {
+        passert_thread(__func__);
+
+        std::shared_ptr<VROEventDelegate> delegate = getDelegate();
+        if (delegate != nullptr && delegate->isEventEnabled(VROEventDelegate::EventAction::OnControllerStatus)){
+            delegate->onControllerStatus(events);
         }
     }
 

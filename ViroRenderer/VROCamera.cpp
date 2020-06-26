@@ -36,8 +36,18 @@ VROCamera::~VROCamera() {
     
 }
 
-void VROCamera::setPosition(VROVector3f position) {
-    _position = position;
+void VROCamera::setHeadPosition(VROVector3f headPosition) {
+    _headPosition = headPosition;
+    onPositionChanged();
+}
+
+void VROCamera::setBasePosition(VROVector3f position) {
+    _basePosition = position;
+    onPositionChanged();
+}
+
+void VROCamera::onPositionChanged() {
+    _position = _basePosition + _headPosition;
 }
 
 void VROCamera::setHeadRotation(VROMatrix4f headRotation) {

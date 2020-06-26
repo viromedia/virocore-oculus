@@ -31,6 +31,10 @@
  */
 package com.viro.core;
 
+import android.util.Log;
+
+import java.util.ArrayList;
+
 /**
  * Controller represents the UI through which the user interacts with the {@link Scene}. The exact
  * form of Controller depends on the underlying platform. For example, for Daydream this represents
@@ -57,14 +61,6 @@ public class Controller implements EventDelegate.EventDelegateCallback {
     private EventDelegate mEventDelegate;
     private ClickListener mClickListener;
     private HoverListener mHoverListener;
-    private ControllerStatusListener mStatusListener;
-    private TouchpadTouchListener mTouchpadTouchListener;
-    private TouchpadSwipeListener mTouchpadSwipeListener;
-    private TouchpadScrollListener mTouchpadScrollListener;
-    private DragListener mDragListener;
-    private FuseListener mFuseListener;
-    private GesturePinchListener mGesturePinchListener;
-    private GestureRotateListener mGestureRotateListener;
 
     /**
      * @hide
@@ -103,28 +99,6 @@ public class Controller implements EventDelegate.EventDelegateCallback {
         }
         mEventDelegate = delegate;
         nativeSetEventDelegate(mViroContext.mNativeRef, delegate.mNativeRef);
-    }
-
-    /**
-     * Set the reticle visibility on or off. The reticle is the small pointer that appears at the
-     * center of the screen, which is useful for tapping and fusing on objects.
-     * <p>
-     * Defaults to true.
-     *
-     * @param visible True to make the reticle visible, false to make it invisible.
-     */
-    public void setReticleVisible(boolean visible) {
-        mReticleVisible = visible;
-        nativeEnableReticle(mViroContext.mNativeRef, visible);
-    }
-
-    /**
-     * Returns true if the reticle is currently visible.
-     *
-     * @return True if the reticle is visible.
-     */
-    public boolean isReticleVisible() {
-        return mReticleVisible;
     }
 
     /**
@@ -192,207 +166,38 @@ public class Controller implements EventDelegate.EventDelegateCallback {
         return mClickListener;
     }
 
+
     /**
-     * Set the {@link TouchpadTouchListener} to respond when a user touches or moves across
-     * a touchpad Controller.
+     * Set the {@link HoverListener} to respond when users hover with the Controller.
      *
      * @param listener The listener to attach, or null to remove any installed listener.
      */
-    public void setTouchpadTouchListener(TouchpadTouchListener listener) {
-        mTouchpadTouchListener = listener;
+    public void setHoverListener(HoverListener listener) {
+        mHoverListener = listener;
         if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_TOUCH, true);
+            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_HOVER, true);
         }
         else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_TOUCH, false);
+            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_HOVER, false);
         }
     }
 
     /**
-     * Get the {@link TouchpadTouchListener} that is currently installed for this Controller.
+     * Get the {@link HoverListener} that is currently installed for this Controller.
      *
      * @return The installed listener, or null if none is installed.
      */
-    public TouchpadTouchListener getTouchpadTouchListener() {
-        return mTouchpadTouchListener;
-    }
-
-    /**
-     * Set the {@link TouchpadSwipeListener} to respond when a user swipes across a touchpad
-     * Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setTouchpadSwipeListener(TouchpadSwipeListener listener) {
-        mTouchpadSwipeListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SWIPE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SWIPE, false);
-        }
-    }
-
-    /**
-     * Get the {@link TouchpadSwipeListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public TouchpadSwipeListener getTouchpadSwipeListener() {
-        return mTouchpadSwipeListener;
-    }
-
-    /**
-     * Set the {@link TouchpadScrollListener} to respond when a user scrolls a touchpad.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setTouchpadScrollListener(TouchpadScrollListener listener) {
-        mTouchpadScrollListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SCROLL, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_SCROLL, false);
-        }
-    }
-
-    /**
-     * Get the {@link TouchpadScrollListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public TouchpadScrollListener getTouchpadScrollListener() {
-        return mTouchpadScrollListener;
-    }
-
-    /**
-     * Set the {@link DragListener} to respond when a user attempts to drag a {@link Node}.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setDragListener(DragListener listener) {
-        mDragListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_DRAG, false);
-        }
-    }
-
-    /**
-     * Get the {@link DragListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public DragListener getDragListener() {
-        return mDragListener;
-    }
-
-    /**
-     * Set the {@link FuseListener} to respond when a user hovers over a {@link Node}
-     * long enough to cause a fuse.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setFuseListener(FuseListener listener) {
-        mFuseListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_FUSE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_FUSE, false);
-        }
-    }
-
-    /**
-     * Get the {@link FuseListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public FuseListener getFuseListener() {
-        return mFuseListener;
-    }
-
-    /**
-     * Set the {@link GesturePinchListener} to respond when a user pinches with two fingers over
-     * a {@link Node} using a screen Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setGesturePinchListener(GesturePinchListener listener) {
-        mGesturePinchListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_PINCH, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_PINCH, false);
-        }
-    }
-
-    /**
-     * Get the {@link GesturePinchListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public GesturePinchListener getGesturePinchListener() {
-        return mGesturePinchListener;
-    }
-
-    /**
-     * Set the {@link GestureRotateListener} to respond when a user rotates with two fingers over
-     * a {@link Node} using a screen Controller.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setGestureRotateListener(GestureRotateListener listener) {
-        mGestureRotateListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_ROTATE, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_ROTATE, false);
-        }
-    }
-
-    /**
-     * Get the {@link GestureRotateListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public GestureRotateListener getGestureRotateListener() {
-        return mGestureRotateListener;
-    }
-
-    /**
-     * Set the {@link ControllerStatusListener} to respond when a Controller connects, disconnects,
-     * or enters an error state.
-     *
-     * @param listener The listener to attach, or null to remove any installed listener.
-     */
-    public void setControllerStatusListener(ControllerStatusListener listener) {
-        mStatusListener = listener;
-        if (listener != null) {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_CONTROLLER_STATUS, true);
-        }
-        else {
-            mEventDelegate.setEventEnabled(EventDelegate.EventAction.ON_CONTROLLER_STATUS, false);
-        }
-    }
-
-    /**
-     * Get the {@link ControllerStatusListener} that is currently installed for this Controller.
-     *
-     * @return The installed listener, or null if none is installed.
-     */
-    public ControllerStatusListener getControllerStatusListener() {
-        return mStatusListener;
+    public HoverListener getHoverListener() {
+        return mHoverListener;
     }
 
     /**
      * This is used to notify the developer of the current camera transform. Not exposed to the Java API.
      * @hide
+     *
+     *
+     *
+     * TODO :REMOVE THIS
      */
     //#IFDEF 'viro_react'
     @Override
@@ -417,6 +222,52 @@ public class Controller implements EventDelegate.EventDelegateCallback {
             }
         }
     }
+
+    @Override
+    public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+        //  Log.e("Daniel"," onClick Fired #######");
+        for (EventDelegate.ButtonEvent event : events) {
+            //   Log.e("Daniel"," -> " + event.state);
+        }
+    }
+
+    @Override
+    public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
+        for (EventDelegate.HoverEvent event : events) {
+            //    Log.e("Daniel"," -> " + event.isHovering);
+        }
+    }
+
+    @Override
+    public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
+//  Log.e("Daniel"," ThumbStickEvent #######");
+        for (EventDelegate.ThumbStickEvent event : events) {
+            Log.e("Daniel","ThumbStickEvent -> " + event.isPressed);
+            Log.e("Daniel","ThumbStickEvent -> " + event.axisLocation);
+        }
+    }
+
+    @Override
+    public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
+        for (EventDelegate.TriggerEvent event : events) {
+            // Log.e("Daniel","TriggerEvent -> " + event.weight);
+        }
+    }
+
+    @Override
+    public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
+        for (EventDelegate.MoveEvent event : events) {
+            // Log.e("Daniel","MoveEvent -> " + event.pos);
+        }
+    }
+
+    @Override
+    public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
+        for (EventDelegate.ControllerStatus event : events) {
+            // Log.e("Daniel","MoveEvent -> " + event.pos);
+        }
+    }
+
     /**
      * @hide
      */
@@ -427,15 +278,7 @@ public class Controller implements EventDelegate.EventDelegateCallback {
             mHoverListener.onHover(source, node, isHovering, hitLocVec);
         }
     }
-    /**
-     * @hide
-     */
-    @Override
-    public void onControllerStatus(int source, ControllerStatus status) {
-        if (mStatusListener != null) {
-            mStatusListener.onControllerStatus(source, status);
-        }
-    }
+
     private native void nativeSetEventDelegate(long contextRef, long delegateRef);
     private native void nativeEnableReticle(long contextRef, boolean enabled);
     private native void nativeEnableController(long contextRef, boolean enabled);

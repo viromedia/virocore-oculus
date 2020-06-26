@@ -32,6 +32,7 @@ import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 import android.view.Surface;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 /**
  * AndroidViewTexture renders an Android {@link View} onto a Viro {@link Texture}. This texture
@@ -199,6 +200,11 @@ public class AndroidViewTexture extends Texture {
         @Override
         public void onClick(int source, Node node, Vector location) {
             // No-op
+        }
+
+        @Override
+        public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+
         }
 
         @Override

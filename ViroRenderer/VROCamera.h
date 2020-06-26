@@ -52,14 +52,18 @@ public:
     
     VROCamera();
     virtual ~VROCamera();
-    
-    void setPosition(VROVector3f position);
+
+    void setHeadPosition(VROVector3f headPosition);
+    void setBasePosition(VROVector3f position);
     void setHeadRotation(VROMatrix4f headRotation);
     void setBaseRotation(VROMatrix4f baseRotation);
     void setViewport(VROViewport viewport);
     void setFOV(VROFieldOfView fov);
     void setProjection(VROMatrix4f projection);
-    
+
+    VROVector3f getBasePosition() const {
+        return _basePosition;
+    }
     VROVector3f getPosition() const {
         return _position;
     }
@@ -98,7 +102,8 @@ public:
     
     float getWorldPerScreen(float distance) const;
 private:
-    
+    VROVector3f _headPosition;
+    VROVector3f _basePosition;
     VROVector3f _position;
     
     /*
@@ -161,7 +166,7 @@ private:
     float _ncp, _fcp;
     
     void onRotationChanged();
-    
+    void onPositionChanged();
 };
 
 class VROCameraDelegate {
@@ -170,7 +175,8 @@ public:
     virtual ~VROCameraDelegate() {};
     virtual void onCameraTransformationUpdate(VROVector3f pos,
                                               VROVector3f rot,
-                                              VROVector3f forward) = 0;
+                                              VROVector3f forward,
+                                              VROVector3f up) = 0;
 };
 
 #endif /* VROCamera_h */

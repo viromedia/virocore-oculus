@@ -115,6 +115,7 @@ VRO_METHOD(jlong, nativeCreateRendererOVR)(VRO_ARGS
 
     std::shared_ptr<VROSceneRenderer> renderer
             = std::make_shared<VROSceneRendererOVR>(config, gvrAudio, view, activity, env);
+
     return Renderer::jptr(renderer);
 }
 
@@ -198,53 +199,6 @@ VRO_METHOD (void, nativeOnKeyEvent)(VRO_ARGS
             return;
         }
         renderer->onKeyEvent(keyCode, action);
-    });
-}
-
-VRO_METHOD(void, nativeOnTouchEvent)(VRO_ARGS
-                                     jlong native_renderer,
-                                     VRO_INT onTouchAction,
-                                     float xPos,
-                                     float yPos) {
-    std::weak_ptr<VROSceneRenderer> renderer_w = Renderer::native(native_renderer);
-    VROPlatformDispatchAsyncRenderer([renderer_w, onTouchAction, xPos, yPos] {
-        std::shared_ptr<VROSceneRenderer> renderer = renderer_w.lock();
-        if (!renderer) {
-            return;
-        }
-        //renderer->onTouchEvent(onTouchAction, xPos, yPos);
-    });
-}
-
-VRO_METHOD(void, nativeOnPinchEvent) (VRO_ARGS
-                                      jlong native_renderer,
-                                      VRO_INT pinchState,
-                                      VRO_FLOAT scaleFactor,
-                                      VRO_FLOAT viewportX,
-                                      VRO_FLOAT viewportY) {
-    std::weak_ptr<VROSceneRenderer> renderer_w = Renderer::native(native_renderer);
-    VROPlatformDispatchAsyncRenderer([renderer_w, pinchState, scaleFactor, viewportX, viewportY] {
-        std::shared_ptr<VROSceneRenderer> renderer = renderer_w.lock();
-        if (!renderer) {
-            return;
-        }
-    //    renderer->onPinchEvent(pinchState, scaleFactor, viewportX, viewportY);
-    });
-}
-
-VRO_METHOD(void, nativeOnRotateEvent) (VRO_ARGS
-                                       jlong native_renderer,
-                                       VRO_INT rotateState,
-                                       VRO_FLOAT rotateRadians,
-                                       VRO_FLOAT viewportX,
-                                       VRO_FLOAT viewportY) {
-    std::weak_ptr<VROSceneRenderer> renderer_w = Renderer::native(native_renderer);
-    VROPlatformDispatchAsyncRenderer([renderer_w, rotateState, rotateRadians, viewportX, viewportY] {
-        std::shared_ptr<VROSceneRenderer> renderer = renderer_w.lock();
-        if (!renderer) {
-            return;
-        }
-       // renderer->onRotateEvent(rotateState, rotateRadians, viewportX, viewportY);
     });
 }
 

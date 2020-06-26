@@ -202,16 +202,7 @@ public class ViroViewGVR extends ViroView {
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            ViroViewGVR view = mView.get();
-            if (view == null) {
-                return false;
-            }
-
-            int action = event.getAction();
-            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP) {
-                view.mNativeRenderer.onTouchEvent(action, event.getX(), event.getY());
-                return true;
-            }
+            // No-op
             return false;
         }
     }

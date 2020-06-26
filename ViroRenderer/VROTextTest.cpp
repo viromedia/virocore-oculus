@@ -215,11 +215,3 @@ void VROTextEventDelegate::onClick(int source, std::shared_ptr<VRONode> node, Cl
         _test->rotateText();
     }
 }
-
-void VROTextEventDelegate::onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
-    _test->scaleText(scaleFactor);
-}
-
-void VROTextEventDelegate::onRotate(int source, std::shared_ptr<VRONode> node, float rotationRadians, RotateState rotateState) {
-
-}

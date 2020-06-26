@@ -55,14 +55,15 @@ public:
      Called from VRORenderer to notify the JNI bridge with a camera transformation update.
      Filtering is also performed here to reduce the number of bridge synchronization calls.
      */
-    void onCameraTransformationUpdate(VROVector3f pos, VROVector3f rot, VROVector3f forward) {
+    void onCameraTransformationUpdate(VROVector3f pos, VROVector3f rot, VROVector3f forward, VROVector3f up) {
+        // Determine if we should update. Assume changes in pos / forwards is a sufficient filter for now.
         if (!shouldUpdate(pos, forward)) {
             return;
         }
 
         VRO_ENV env = VROPlatformGetJNIEnv();
         VRO_WEAK jObjWeak = VRO_NEW_WEAK_GLOBAL_REF(_javaObject);
-        VROPlatformDispatchAsyncApplication([jObjWeak, pos, rot, forward] {
+        VROPlatformDispatchAsyncApplication([jObjWeak, pos, rot, forward, up] {
             VRO_ENV env = VROPlatformGetJNIEnv();
             VRO_OBJECT localObj = VRO_NEW_LOCAL_REF(jObjWeak);
             if (VRO_IS_OBJECT_NULL(localObj)) {
@@ -71,8 +72,9 @@ public:
             VRO_FLOAT_ARRAY jPos = ARUtilsCreateFloatArrayFromVector3f(pos);
             VRO_FLOAT_ARRAY jRot = ARUtilsCreateFloatArrayFromVector3f(rot);
             VRO_FLOAT_ARRAY jForward = ARUtilsCreateFloatArrayFromVector3f(forward);
-            VROPlatformCallHostFunction(localObj, "onCameraTransformationUpdate", "([F[F[F)V",
-                                        jPos, jRot, jForward);
+            VRO_FLOAT_ARRAY jUp = ARUtilsCreateFloatArrayFromVector3f(up);
+            VROPlatformCallHostFunction(localObj, "onCameraTransformationUpdate", "([F[F[F[F)V",
+                                        jPos, jRot, jForward, jUp);
             VRO_DELETE_LOCAL_REF(localObj);
             VRO_DELETE_WEAK_GLOBAL_REF(jObjWeak);
         });

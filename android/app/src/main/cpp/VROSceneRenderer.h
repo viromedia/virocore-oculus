@@ -58,24 +58,7 @@ public:
     /*
      InputEvent methods for notifying the renderer.
      */
-    virtual void onTouchEvent(int action, float xPos, float yPos) = 0;
     virtual void onKeyEvent(int keyCode, int action) = 0;
-
-    /*
-     Called to let the renderer know when a pinch event has occurred.
-     */
-    virtual void onPinchEvent(int pinchState, float scaleFactor,
-                              float viewportX, float viewportY) {
-        // no-op (not all renderers need to implement this)
-    }
-
-    /*
-     Called to let the renderer know when a rotate event has occurred.
-     */
-    virtual void onRotateEvent(int rotateState, float rotateRadians,
-                               float viewportX, float viewportY) {
-        // no-op (not all renderers need to implement this)
-    }
 
     /*
      Enable or disable stereo rendering (VR mode). When false, we will render

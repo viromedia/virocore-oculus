@@ -47,6 +47,7 @@ import com.viro.core.ARPointCloud;
 import com.viro.core.BoundingBox;
 import com.viro.core.CameraImageListener;
 import com.viro.core.CameraIntrinsics;
+import com.viro.core.CameraListener;
 import com.viro.core.ClickListener;
 import com.viro.core.DragListener;
 import com.viro.core.HoverListener;
@@ -98,7 +99,6 @@ import com.viro.core.ViroViewARCore;
 import com.viro.core.ViroViewGVR;
 import com.viro.core.ViroViewOVR;
 import com.viro.core.ClickState;
-import com.viro.core.ControllerStatus;
 import com.viro.core.PinchState;
 import com.viro.core.RotateState;
 import com.viro.core.SwipeState;
@@ -259,7 +259,18 @@ public class ViroActivity extends AppCompatActivity {
         // Updating the scene.
         mViroView.setScene(scene);
         final Controller nativeController = mViroView.getController();
+        nativeController.setEventDelegate(getGenericDelegate("Controller"));
         //nativeController.setReticleVisibility(false);
+
+        mViroView.setCameraListener(new CameraListener() {
+            @Override
+            public void onTransformUpdate(Vector position, Vector r, Vector forward, Vector up) {
+
+                Vector l = new Vector(Math.toDegrees(r.x), Math.toDegrees(r.y),Math.toDegrees(r.z));
+
+                Log.e("Marcus","Cam : " + position + " , " + l + " , " + forward + " , " +up);
+            }
+        });
     }
 
     /*
@@ -632,6 +643,14 @@ public class ViroActivity extends AppCompatActivity {
     }
 
     private List<Node> testBox(final Context context) {
+        final Node pointOfView = new Node();
+        final Camera camera = new Camera();
+        //camera.setPosition(new Vector(0, -0.5f, -0.5f));
+        //pointOfView.setCamera(camera);
+        pointOfView.setPosition(new Vector(0, -0.5f, -0.5f));
+        mViroView.setPointOfView(pointOfView);
+
+
         final Node node1 = new Node();
         final Node node2 = new Node();
 
@@ -639,8 +658,11 @@ public class ViroActivity extends AppCompatActivity {
         final Text textJni = new Text(mViroView.getViroContext(), "Test text 1 2 3", "Roboto", 24,
                 Color.WHITE, 10, 4, Text.HorizontalAlignment.CENTER, Text.VerticalAlignment.CENTER, Text.LineBreakMode.NONE,
                 Text.ClipMode.CLIP_TO_BOUNDS, 1);
+        Material m = new Material();
+        m.setCullMode(Material.CullMode.NONE);
+        textJni.setMaterials(Arrays.asList(m));
 
-        final float[] position = {0, -1, -2};
+        final float[] position = {0, -0.5f, -0.5f};
         node3.setPosition(new Vector(position));
         node3.setGeometry(textJni);
         node3.setEventDelegate(getGenericDelegate("Text"));
@@ -674,25 +696,8 @@ public class ViroActivity extends AppCompatActivity {
         final Vector boxPosition2 = new Vector(-2, 0, -3);
         node2.setPosition(boxPosition2);
         boxGeometry2.setMaterials(Arrays.asList(material));
-        node2.setClickListener(new ClickListener() {
-            @Override
-            public void onClick(int source, Node node, Vector location) {
-                Log.i("Viro", "ON CLICK");
-            }
+        node2.setEventDelegate(getGenericDelegate("node2"));
 
-            @Override
-            public void onClickState(int source, Node node, ClickState clickState, Vector location) {
-                Log.i("Viro", "on click state " + clickState.toString());
-            }
-        });
-
-        node2.setHoverListener(new HoverListener() {
-            @Override
-            public void onHover(int source, Node node, boolean isHovering, Vector location) {
-                Log.i("Viro", "ON HOVER "+isHovering);
-
-            }
-        });
 
         // Light for the box
         Spotlight light = new Spotlight();
@@ -724,7 +729,7 @@ public class ViroActivity extends AppCompatActivity {
             }
         }, 1000);
 
-        return Arrays.asList(node1, node2, node3);
+        return Arrays.asList(pointOfView, node1, node2, node3);
     }
 
     private List<Node> test3dObjectLoading(final Context context) {
@@ -1127,12 +1132,6 @@ public class ViroActivity extends AppCompatActivity {
 
                     node.addLight(spot);
                     node.addChildNode(loadObjectNode(bitmask | 1, .04f, new Vector(0, 0, 0)));
-                    node.setDragListener(new DragListener() {
-                        @Override
-                        public void onDrag(int source, Node node, Vector worldLocation, Vector localLocation) {
-
-                        }
-                    });
 
                     Surface surface = new Surface(2, 2);
                     Material material = new Material();
@@ -1252,10 +1251,6 @@ public class ViroActivity extends AppCompatActivity {
         final Box box = new Box(.15f, .15f, .15f);
 
         final EventDelegate delegate = getGenericDelegate("boxNode");
-
-        delegate.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
-        delegate.setEventEnabled(EventDelegate.EventAction.ON_ROTATE, true);
-        delegate.setEventEnabled(EventDelegate.EventAction.ON_PINCH, true);
         delegate.setEventDelegateCallback(new ARDragDelegateCallback("boxNode", boxNode));
         node.setEventDelegate(delegate);
         node.setDragType(Node.DragType.FIXED_TO_WORLD);
@@ -1526,9 +1521,10 @@ public class ViroActivity extends AppCompatActivity {
     private EventDelegate getGenericDelegate(final String delegateTag){
         final EventDelegate delegateJni = new EventDelegate();
         delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, true);
-        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_FUSE, true);
-        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_DRAG, true);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_TRIGGER, true);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_THUMBSTICK, true);
         delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CLICK, true);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CONTROLLER_STATUS, true);
         lol = new GenericEventCallback(delegateTag);
         delegateJni.setEventDelegateCallback(lol);
 
@@ -1557,19 +1553,62 @@ public GenericEventCallback lol;
         }
 
         @Override
+        public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+          //  Log.e("Daniel"," onClick Fired #######");
+            for (EventDelegate.ButtonEvent event : events) {
+                Log.e("Daniel"," -> " + event.state);
+            }
+        }
+
+        @Override
+        public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
+            for (EventDelegate.HoverEvent event : events) {
+             //  Log.e("Daniel"," -> " + event.isHovering);
+            }
+        }
+
+        @Override
+        public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
+          //  Log.e("Daniel"," ThumbStickEvent #######");
+            for (EventDelegate.ThumbStickEvent event : events) {
+                //Log.e("Daniel","ThumbStickEvent -> " + event.isPressed);
+             //   Log.e("Daniel","ThumbStickEvent -> " + event.axisLocation);
+            }
+        }
+
+        @Override
+        public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
+            for (EventDelegate.TriggerEvent event : events) {
+             //  Log.e("Daniel","TriggerEvent -> " + event.weight);
+            }
+        }
+
+        @Override
+        public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
+            for (EventDelegate.MoveEvent event : events) {
+               // Log.e("Daniel","MoveEvent -> " + event.pos);
+            }
+        }
+
+        @Override
+        public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
+            Log.e("Daniel"," onControllerStatus #######");
+
+            for (EventDelegate.ControllerStatus event : events) {
+                 Log.e("Daniel","device : " + event.deviceId + "onControllerStatus -> " + event.isConnected  + " , " +
+                         event.batteryPercentage + " , " + event.is6Dof);
+            }
+        }
+
+        @Override
         public void onHover(final int source, final Node node, final boolean isHovering, final float[] hitLoc) {
-            Log.e(TAG, delegateTag + " onHover " + isHovering);
+          //  Log.e("Daniel", delegateTag + " JAVA  onHover " + isHovering);
         }
 
         @Override
         public void onClick(final int source, final Node node, final ClickState clickState, final float[] hitLoc) {
-            Log.e(TAG, delegateTag + " onButtonEvent " + clickState.toString() + " location " +
-                    hitLoc[0] + ", " + hitLoc[1] + ", " + hitLoc[2]);
-        }
-
-        @Override
-        public void onControllerStatus(final int source, final ControllerStatus status) {
-
+         //   Log.e("Daniel", delegateTag + " JAVA onButtonEvent " + clickState.toString() + " location " +
+           //         hitLoc[0] + ", " + hitLoc[1] + ", " + hitLoc[2]);
         }
 
         @Override

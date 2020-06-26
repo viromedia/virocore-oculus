@@ -779,13 +779,17 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         eyeFromHeadMatrix[eye] = toMatrix4f(eyeOffsetMatrix);
     }
 
+    // Calculate Camera transformations for one eye.
     ovrFramebuffer *leftFB = &rendererOVR->FrameBuffer[0];
     VROViewport leftViewport(0, 0, leftFB->Width, leftFB->Height);
     float fovX = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X );
     float fovY = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y );
     VROFieldOfView fov(fovX / 2.0, fovX / 2.0, fovY / 2.0, fovY / 2.0);
-    VROMatrix4f projection = toMatrix4f(updatedTracking.Eye[0].ProjectionMatrix);
-    renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, projection, driver);
+    VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, renderer->getFarClippingPlane());
+
+    VROVector3f headPosition = toMatrix4f(updatedTracking.Eye[0].ViewMatrix).extractTranslation().scale(-1);
+    renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, headPosition, projection,
+                           driver);
 
     // Render the scene to the textures in the scene layer
     for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
@@ -807,17 +811,12 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
         VROViewport viewport = { 0, 0, frameBuffer->Width, frameBuffer->Height };
 
-        VROMatrix4f viroHeadView = renderer->getLookAtMatrix();
+        // Recalculate the view matrix with the eye offsets.
         VROMatrix4f ovrEyeView = toMatrix4f(updatedTracking.Eye[eye].ViewMatrix);
-
-        // Copy over the values from the OVR eye view matrix into our Viro head view matrix to
-        // get the correct translation (this appears to be the only thing OVR is changing to
-        // derive its eye view matrix from its head view matrix). Note we don't pass the OVR eye
-        // view matrix directly into Viro because we need to take Viro's pointOfView into account,
-        // which is captured in the viroHeadView
-        for (int i = 12; i < 15; i++) {
-            viroHeadView[i] += ovrEyeView[i];
-        } //After these additions, viroHeadView is really viroEyeView
+        VROVector3f finalPos = ovrEyeView.invert().extractTranslation() + renderer->getCamera().getBasePosition();
+        VROVector3f forward = renderer->getCamera().getRotation().getMatrix().multiply(kBaseForward);
+        VROVector3f up = renderer->getCamera().getRotation().getMatrix().multiply(kBaseUp);
+        VROMatrix4f viroHeadView = VROMathComputeLookAtMatrix(finalPos, forward, up);
 
         // We use our projection matrix because the one computed by OVR appears to be identical for
         // left and right, but with fixed NCP and FCP. Our projection uses the correct NCP and FCP.
@@ -1015,6 +1014,7 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
             snapShot.triggerIndexWeight = trackedRemoteState.IndexTrigger;
             snapShot.joyStickAxis = VROVector3f(trackedRemoteState.Joystick.x,
                                                trackedRemoteState.Joystick.y, 0);
+            snapShot.isConnected = true;
         } else {
             continue;
         }

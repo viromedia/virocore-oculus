@@ -431,19 +431,6 @@ public:
         }
     }
 
-    void onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
-        std::shared_ptr<VROBodyIKController> controller = _controller.lock();
-        if (!controller) {
-            return;
-        }
-
-        if(pinchState == PinchState::PinchStart) {
-            _scaleStart = node->getScale().x; // xyz is in uniform scale.
-        } else {
-             node->setScale(VROVector3f(_scaleStart, _scaleStart, _scaleStart).scale(scaleFactor));
-        }
-    }
-
 private:
     float _scaleStart;
     std::weak_ptr<VROBodyIKController> _controller;

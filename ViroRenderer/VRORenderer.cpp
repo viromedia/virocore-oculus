@@ -313,24 +313,26 @@ void VRORenderer::setClearColor(VROVector4f color, std::shared_ptr<VRODriver> dr
 }
 
 VROCamera VRORenderer::updateCamera(const VROViewport &viewport, const VROFieldOfView &fov,
-                                    const VROMatrix4f &headRotation, const VROMatrix4f &projection) {
+                                    const VROMatrix4f &headRotation,
+                                    const VROVector3f &headPosition,
+                                    const VROMatrix4f &projection) {
     
     VROCamera camera;
     camera.setHeadRotation(headRotation);
+    camera.setHeadPosition(headPosition);
     camera.setViewport(viewport);
     camera.setFOV(fov);
     camera.setProjection(projection);
-    
     // Make a default camera if no point of view is set
     if (!_pointOfView) {
-        camera.setPosition({0, 0, 0 });
+        camera.setBasePosition({});
         camera.setBaseRotation({});
     }
     else {
         // If no node camera is set, just use the point of view node's position and
         // rotation, with standard rotation type
         if (!_pointOfView->getCamera()) {
-            camera.setPosition(_pointOfView->getWorldPosition());
+            camera.setBasePosition(_pointOfView->getWorldPosition());
             camera.setBaseRotation(_pointOfView->getWorldRotation());
         }
         
@@ -340,7 +342,7 @@ VROCamera VRORenderer::updateCamera(const VROViewport &viewport, const VROFieldO
             camera.setBaseRotation(_pointOfView->getWorldRotation().multiply(nodeCamera->getBaseRotation().getMatrix()));
             
             if (nodeCamera->getRotationType() == VROCameraRotationType::Standard) {
-                camera.setPosition(_pointOfView->getWorldPosition() + nodeCamera->getPosition());
+                camera.setBasePosition(_pointOfView->getWorldPosition() + nodeCamera->getPosition());
                 std::shared_ptr<VRONode> node = nodeCamera->getRefNodeToCopyRotation();
                 if (node != nullptr) {
                     node->setRotation(VROQuaternion(headRotation));
@@ -356,7 +358,7 @@ VROCamera VRORenderer::updateCamera(const VROViewport &viewport, const VROFieldO
                 // Set the orbit position by pushing out the camera at an angle
                 // defined by the current head rotation
                 VROVector3f orbitedRay = headRotation.multiply(v.normalize());
-                camera.setPosition(focal - orbitedRay.scale(v.magnitude()));
+                camera.setBasePosition(focal - orbitedRay.scale(v.magnitude()));
                 
                 // Set the orbit rotation. This is the current head rotation plus
                 // the rotation required to get from kBaseForward to the forward
@@ -378,7 +380,8 @@ VROCamera VRORenderer::updateCamera(const VROViewport &viewport, const VROFieldO
         _cameraDelegate->onCameraTransformationUpdate(
                 camera.getPosition(),
                 camera.getRotation().toEuler(),
-                camera.getForward());
+                camera.getForward(),
+                camera.getUp());
     }
 
     return camera;
@@ -387,7 +390,8 @@ VROCamera VRORenderer::updateCamera(const VROViewport &viewport, const VROFieldO
 #pragma mark - Rendering
 
 void VRORenderer::prepareFrame(int frame, VROViewport viewport, VROFieldOfView fov,
-                               VROMatrix4f headRotation, VROMatrix4f projection, std::shared_ptr<VRODriver> driver) {
+                               VROMatrix4f headRotation, VROVector3f headPosition,
+                               VROMatrix4f projection, std::shared_ptr<VRODriver> driver) {
 
     pglpush("Viro Start Frame %d", frame);
     if (!_rendererInitialized) {
@@ -429,7 +433,7 @@ void VRORenderer::prepareFrame(int frame, VROViewport viewport, VROFieldOfView f
         scene->computeTransforms();
     }
 
-    VROCamera camera = updateCamera(viewport, fov, headRotation, projection);
+    VROCamera camera = updateCamera(viewport, fov, headRotation, headPosition, projection);
     _context->setPreviousCamera(_context->getCamera());
     _context->setCamera(camera);
 

@@ -23,6 +23,8 @@
 
 package com.viro.core;
 
+import java.util.ArrayList;
+
 /**
  * Callback interface for responding to click events, which occur when any Controller button is
  * clicked.
@@ -40,6 +42,7 @@ public interface ClickListener {
      * @param location   The location of the event in world coordinates.
      */
     void onClick(int source, Node node, Vector location);
+    void onClick(ArrayList<EventDelegate.ButtonEvent> events);
 
     /**
      * Callback when the {@link ClickState} is changed over the given {@link Node}. This callback is

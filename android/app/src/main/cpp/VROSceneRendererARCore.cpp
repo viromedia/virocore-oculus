@@ -182,7 +182,7 @@ void VROSceneRendererARCore::renderWithTracking(const std::shared_ptr<VROARCamer
      Render the 3D scene.
      */
     _pointOfView->getCamera()->setPosition(position);
-    _renderer->prepareFrame(_frame, viewport, fov, rotation, projection, _driver);
+    _renderer->prepareFrame(_frame, viewport, fov, rotation, VROVector3f(), projection, _driver);
     _renderer->renderEye(VROEyeType::Monocular, _renderer->getLookAtMatrix(), projection, viewport, _driver);
     _renderer->renderHUD(VROEyeType::Monocular, VROMatrix4f::identity(), projection, _driver);
     _renderer->endFrame(_driver);
@@ -201,7 +201,8 @@ void VROSceneRendererARCore::renderWaitingForTracking(VROViewport viewport) {
     VROFieldOfView fov = _renderer->computeUserFieldOfView(viewport.getWidth(), viewport.getHeight());
     VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, _renderer->getFarClippingPlane());
 
-    _renderer->prepareFrame(_frame, viewport, fov, VROMatrix4f::identity(), projection, _driver);
+    _renderer->prepareFrame(_frame, viewport, fov, VROMatrix4f::identity(), VROVector3f(),
+                            projection, _driver);
     _renderer->renderEye(VROEyeType::Monocular, _renderer->getLookAtMatrix(), projection, viewport, _driver);
     _renderer->renderHUD(VROEyeType::Monocular, VROMatrix4f::identity(), projection, _driver);
     _renderer->endFrame(_driver);
@@ -259,17 +260,6 @@ void VROSceneRendererARCore::onSurfaceChanged(jobject surface, VRO_INT width, VR
         _cameraBackground->setWidth(width);
         _cameraBackground->setHeight(height);
     }
-}
-
-void VROSceneRendererARCore::onTouchEvent(int action, float x, float y) {
-}
-
-void VROSceneRendererARCore::onPinchEvent(int pinchState, float scaleFactor,
-                                          float viewportX, float viewportY) {
-}
-
-void VROSceneRendererARCore::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
-                                           float viewportY) {
 }
 
 void VROSceneRendererARCore::onPause() {

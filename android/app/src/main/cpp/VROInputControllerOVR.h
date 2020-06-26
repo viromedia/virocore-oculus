@@ -55,7 +55,7 @@ public:
     VROInputControllerOVR(std::shared_ptr<VRODriver> driver);
     virtual ~VROInputControllerOVR(){}
 
-    void processControllerState(std::vector<ControllerSnapShot> snapshots);
+    void processControllerState(std::vector<ControllerSnapShot> &snapshots);
     void processInput(std::vector<ControllerSnapShot> snapshots);
     void onProcess(const VROCamera &camera); // TODO: Remove and Hook in camera updates properly.
 

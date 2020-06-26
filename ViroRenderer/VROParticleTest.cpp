@@ -139,11 +139,3 @@ void VROParticleEventDelegate::onClick(int source, std::shared_ptr<VRONode> node
     _test->toggleParticleEmitterPause();
   }
 }
-
-void VROParticleEventDelegate::onPinch(int source, std::shared_ptr<VRONode> node, float scaleFactor, PinchState pinchState) {
-  // No-op
-}
-
-void VROParticleEventDelegate::onRotate(int source, std::shared_ptr<VRONode> node, float rotationRadians, RotateState rotateState) {
-  // No-op
-}

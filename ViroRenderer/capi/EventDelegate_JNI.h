@@ -58,13 +58,15 @@ public:
     }
 
     /*
-     virtual void onButtonEvent(std::vector<ButtonEvent> &events)
-     virtual void onHover(std::vector<HoverEvent> &events)
-     virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events)
-     virtual void onWeightedTriggerEvent(std::vector<TriggerEvent> &events)
-     virtual void onControllerStatus(std::vector<ControllerStat> status)
-     virtual void onMove(std::vector<MoveEvent> &events)
+
      */
+    void onButtonEvent(std::vector<ButtonEvent> &events);
+    void onHover(std::vector<HoverEvent> &events);
+    void onThumbStickEvent(std::vector<ThumbStickEvent> &events);
+    void onWeightedTriggerEvent(std::vector<TriggerEvent> &events);
+    void onControllerStatus(std::vector<ControllerStat> status);
+    void onMove(std::vector<MoveEvent> &events);
+
 
     /*
      Java event delegates to be triggered across the JNI bridge.
@@ -72,7 +74,6 @@ public:
     void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position);
     void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position);
     void onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec);
-    void onControllerStatus(std::vector<ControllerStat> status);
     void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up);
 
 private:

@@ -77,13 +77,6 @@ public class ViroTouchGestureListener extends GestureDetector.SimpleOnGestureLis
         mDestroyed = true;
     }
 
-    private void handleTap(float x, float y) {
-        if (!mDestroyed) {
-            mNativeRenderer.onTouchEvent(EVENT_BEGIN, x, y);
-            mNativeRenderer.onTouchEvent(EVENT_END, x, y);
-        }
-    }
-
     public void setOnTouchListener(View.OnTouchListener listener) {
         mUserTouchListener = listener;
     }
@@ -94,54 +87,8 @@ public class ViroTouchGestureListener extends GestureDetector.SimpleOnGestureLis
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if (mDestroyed) {
-            return false;
-        }
-
-        if (mUserTouchListener != null && mUserTouchListener.onTouch(v, event)) {
-            return true;
-        }
-
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                mFingerDownTime = System.currentTimeMillis();
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (mIsScaling || mIsRotating) {
-                    mFingerDownTime = INVALID_FINGER_DOWN_TIME;
-                    break;
-                } else if (mIsTouching) {
-                    // for some reason, even when the pixel positions aren't changing, android still
-                    // calls this function... so just filter out exact same points.
-                    if (mLastTouchX == event.getX() && mLastTouchY == event.getY()) {
-                        break;
-                    }
-
-                    mNativeRenderer.onTouchEvent(EVENT_MOVE, event.getX(), event.getY());
-
-                } else if (mFingerDownTime != INVALID_FINGER_DOWN_TIME
-                        && (System.currentTimeMillis() - mFingerDownTime) > MIN_FINGER_TOUCH_DURATION) {
-                    mIsTouching = true;
-                    mNativeRenderer.onTouchEvent(EVENT_BEGIN, event.getX(), event.getY());
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                if (mIsTouching) {
-                    mIsTouching = false;
-                    mNativeRenderer.onTouchEvent(EVENT_END, event.getX(), event.getY());
-                } else if ((System.currentTimeMillis() - mFingerDownTime) < MIN_FINGER_TOUCH_DURATION) {
-                    // this is a "tap"
-                    handleTap(event.getX(), event.getY());
-                }
-                break;
-        }
-
-        if (!mIsTouching) {
-            mScaleDetector.onTouchEvent(event);
-            mRotateDetector.onTouchEvent(event);
-        }
-
-        return true;
+        // No-op
+        return false;
     }
 
     /*
@@ -149,33 +96,19 @@ public class ViroTouchGestureListener extends GestureDetector.SimpleOnGestureLis
      */
     @Override
     public boolean onScaleBegin(ScaleGestureDetector detector) {
-        mIsScaling = true;
-        mLatestScale = detector.getScaleFactor();
-        if (!mDestroyed) {
-            mNativeRenderer.onPinchEvent(EVENT_BEGIN, mLatestScale, detector.getFocusX(),
-                    detector.getFocusY());
-        }
-        return true;
+        // No-op
+        return false;
     }
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
-        mLatestScale *= detector.getScaleFactor();
-        if (!mDestroyed) {
-            mNativeRenderer.onPinchEvent(EVENT_MOVE, mLatestScale, detector.getFocusX(),
-                    detector.getFocusY());
-        }
-        return true;
+        // No-op
+        return false;
     }
 
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
-        mIsScaling = false;
-        mLatestScale *= detector.getScaleFactor();
-        if (!mDestroyed) {
-            mNativeRenderer.onPinchEvent(EVENT_END, mLatestScale, detector.getFocusX(),
-                    detector.getFocusY());
-        }
+        // No-op
     }
 
     /*
@@ -184,27 +117,16 @@ public class ViroTouchGestureListener extends GestureDetector.SimpleOnGestureLis
 
     @Override
     public void onRotateBegin(RotationGestureDetector detector) {
-        mIsRotating = true;
-        if (!mDestroyed) {
-            PointF center = detector.getOriginalCenterPoint();
-            mNativeRenderer.onRotateEvent(EVENT_BEGIN, detector.getRotateRadians(), center.x, center.y);
-        }
+        // No-op
     }
 
     @Override
     public void onRotate(RotationGestureDetector detector) {
-        if (!mDestroyed) {
-            PointF center = detector.getCenterPoint();
-            mNativeRenderer.onRotateEvent(EVENT_MOVE, detector.getRotateRadians(), center.x, center.y);
-        }
+        // No-op
     }
 
     @Override
     public void onRotateEnd(RotationGestureDetector detector) {
-        mIsRotating = false;
-        if (!mDestroyed) {
-            PointF center = detector.getCenterPoint();
-            mNativeRenderer.onRotateEvent(EVENT_END, detector.getRotateRadians(), center.x, center.y);
-        }
+        // No-op
     }
 }

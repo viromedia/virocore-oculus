@@ -63,11 +63,6 @@ public:
      */
     void initGL();
     void onDrawFrame();
-    void onTouchEvent(int action, float x, float y);
-    void onPinchEvent(int pinchState, float scaleFactor,
-                                           float viewportX, float viewportY);
-    void onRotateEvent(int rotateState, float rotateRadians, float viewportX,
-                                            float viewportY);
     void onKeyEvent(int keyCode, int action) {} // Not Required
     void setVRModeEnabled(bool enabled);
 

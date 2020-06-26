@@ -26,6 +26,8 @@ package com.viro.core;
 import com.viro.core.Node;
 import com.viro.core.Vector;
 
+import java.util.ArrayList;
+
 /**
  * Callback interface for responding to hover events, which occur when the Controller hovers
  * over a {@link Node}.
@@ -45,4 +47,5 @@ public interface HoverListener {
      * @param location   The location of the event in world coordinates.
      */
     void onHover(int source, Node node, boolean isHovering, Vector location);
+    void onHover(ArrayList<EventDelegate.HoverEvent> events);
 }

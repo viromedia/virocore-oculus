@@ -163,18 +163,6 @@ public class Renderer {
     public void onKeyEvent(int keyCode, int action) {
         nativeOnKeyEvent(mNativeRef, keyCode, action);
     }
-    public void onTouchEvent(int onTouchAction, float touchPosX, float touchPosY) {
-        nativeOnTouchEvent(mNativeRef, onTouchAction, touchPosX, touchPosY);
-    }
-
-    public void onPinchEvent(int pinchState, float scaleFactor, float viewportX, float viewportY) {
-        nativeOnPinchEvent(mNativeRef, pinchState, scaleFactor, viewportX, viewportY);
-    }
-
-    public void onRotateEvent(int rotateState, float rotateRadians, float viewportX, float viewportY) {
-        nativeOnRotateEvent(mNativeRef, rotateState, rotateRadians, viewportX, viewportY);
-    }
-
     public void setSceneController(long nativeSceneControllerRef) {
         nativeSetSceneController(mNativeRef, nativeSceneControllerRef);
     }
@@ -265,14 +253,15 @@ public class Renderer {
         mCameraListener = listener;
     }
 
-    public void onCameraTransformationUpdate(float[] pos, float[] rotEuler, float[] forward) {
+    public void onCameraTransformationUpdate(float[] pos, float[] rotEuler, float[] forward, float[] up) {
         if (mCameraListener == null) {
             return;
         }
         Vector vPos = new Vector(pos);
         Vector vRotEuler = new Vector(rotEuler);
         Vector vForward = new Vector(forward);
-        mCameraListener.onTransformUpdate(vPos, vRotEuler, vForward);
+        Vector vUp = new Vector(up);
+        mCameraListener.onTransformUpdate(vPos, vRotEuler, vForward, vUp);
     }
 
     public void onFrameDidRender() {
@@ -305,9 +294,6 @@ public class Renderer {
     private native long nativeDrawFrame(long nativeRenderer);
     private native void nativeOnStart(long nativeRenderer);
     private native void nativeOnKeyEvent(long nativeRenderer, int keyCode, int action);
-    private native void nativeOnTouchEvent(long nativeRenderer, int onTouchAction, float touchPosX, float touchPosY);
-    private native void nativeOnPinchEvent(long nativeRenderer, int pinchState, float scaleFactor, float viewportX, float viewportY);
-    private native void nativeOnRotateEvent(long nativeRenderer, int rotateState, float rotateRadians, float viewportX, float viewportY);
     private native void nativeOnPause(long nativeRenderer);
     private native void nativeOnResume(long nativeRenderer);
     private native void nativeOnStop(long nativeRenderer);

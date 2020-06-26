@@ -38,6 +38,8 @@ public interface CameraListener {
      *                 principal axis, in radians.
      * @param forward  The last known forward direction of the camera. This unit vector indicates
      *                 the direction the camera is facing.
+     * @param up  The last known up direction of the camera. This unit vector indicates
+     *                 the direction perpendicular to which the camera is facing.
      */
-    void onTransformUpdate(Vector position, Vector rotation, Vector forward);
+    void onTransformUpdate(Vector position, Vector rotation, Vector forward, Vector up);
 }

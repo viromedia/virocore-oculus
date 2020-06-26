@@ -46,7 +46,6 @@ import com.viro.core.Texture;
 import com.viro.core.Vector;
 import com.viro.core.ViroView;
 import com.viro.core.ClickState;
-import com.viro.core.ControllerStatus;
 import com.viro.core.PinchState;
 import com.viro.core.RotateState;
 import com.viro.core.SwipeState;
@@ -59,6 +58,7 @@ import org.junit.Rule;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.concurrent.Callable;
@@ -345,6 +345,36 @@ public abstract class ViroBaseTest {
         }
 
         @Override
+        public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+
+        }
+
+        @Override
+        public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
+
+        }
+
+        @Override
+        public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
+
+        }
+
+        @Override
+        public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
+
+        }
+
+        @Override
+        public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
+
+        }
+
+        @Override
+        public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
+
+        }
+
+        @Override
         public void onHover(final int source, final Node node, final boolean isHovering, final float[] hitLoc) {
             Log.e(TAG, delegateTag + " onHover " + isHovering);
         }
@@ -358,11 +388,6 @@ public abstract class ViroBaseTest {
                 mTestResult.set(delegateTag.equalsIgnoreCase(TEST_PASSED_TAG) ? TEST_PASSED : TEST_FAILED);
                 mTestButtonsClicked.set(true);
             }
-        }
-
-        @Override
-        public void onControllerStatus(final int source, final ControllerStatus status) {
-
         }
 
         @Override

@@ -83,7 +83,8 @@ void VROSceneRendererSceneView::renderFrame() {
     VROFieldOfView fov = _renderer->computeUserFieldOfView(viewport.getWidth(), viewport.getHeight());
     VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, _renderer->getFarClippingPlane());
 
-    _renderer->prepareFrame(_frame, viewport, fov, VROMatrix4f::identity(), projection, _driver);
+    _renderer->prepareFrame(_frame, viewport, fov, VROMatrix4f::identity(), VROVector3f(),
+                            projection, _driver);
     _renderer->renderEye(VROEyeType::Monocular, _renderer->getLookAtMatrix(), projection, viewport, _driver);
     _renderer->renderHUD(VROEyeType::Monocular, VROMatrix4f::identity(), projection, _driver);
     _renderer->endFrame(_driver);
@@ -97,17 +98,6 @@ void VROSceneRendererSceneView::onSurfaceChanged(jobject surface, VRO_INT width,
 
     _surfaceSize.width = width;
     _surfaceSize.height = height;
-}
-
-void VROSceneRendererSceneView::onTouchEvent(int action, float x, float y) {
-}
-
-void VROSceneRendererSceneView::onPinchEvent(int pinchState, float scaleFactor,
-                                          float viewportX, float viewportY) {
-}
-
-void VROSceneRendererSceneView::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
-                                           float viewportY) {
 }
 
 void VROSceneRendererSceneView::onPause() {

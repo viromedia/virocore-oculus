@@ -171,7 +171,8 @@ void VROSceneRendererGVR::renderStereo(VROMatrix4f &headView) {
     }
 
     // Prepare the frame and render the left eye
-    _renderer->prepareFrame(_frame, viewports[0], fovs[0], headRotation, projectionMatrices[0], _driver);
+    _renderer->prepareFrame(_frame, viewports[0], fovs[0], headRotation, VROVector3f(),
+                            projectionMatrices[0], _driver);
     clearViewport(viewports[0], false);
     _renderer->renderEye(VROEyeType::Left,
                          eyeFromHeadMatrices[GVR_LEFT_EYE].multiply(_renderer->getLookAtMatrix()),
@@ -224,7 +225,8 @@ void VROSceneRendererGVR::renderMono(VROMatrix4f &headView) {
     VROMatrix4f eyeFromHeadMatrix; // Identity
 
     clearViewport(viewport, false);
-    _renderer->prepareFrame(_frame, viewport, fov, headRotation, projection, _driver);
+    _renderer->prepareFrame(_frame, viewport, fov, headRotation, VROVector3f(), projection,
+                            _driver);
     _renderer->renderEye(VROEyeType::Monocular, _renderer->getLookAtMatrix(), projection, viewport,  _driver);
     _renderer->renderHUD(VROEyeType::Monocular, eyeFromHeadMatrix, projection, _driver);
     _renderer->endFrame(_driver);
@@ -234,9 +236,6 @@ void VROSceneRendererGVR::onSurfaceChanged(jobject surface, VRO_INT width, VRO_I
     VROThreadRestricted::setThread(VROThreadName::Renderer);
     _surfaceSize.width = width;
     _surfaceSize.height = height;
-}
-
-void VROSceneRendererGVR::onTouchEvent(int action, float x, float y) {
 }
 
 void VROSceneRendererGVR::onPause() {
@@ -299,14 +298,6 @@ gvr::Sizei VROSceneRendererGVR::halfPixelCount(const gvr::Sizei& in) {
     out.width = (7 * in.width) / 10;
     out.height = (7 * in.height) / 10;
     return out;
-}
-
-void VROSceneRendererGVR::onPinchEvent(int pinchState, float scaleFactor,
-                                          float viewportX, float viewportY) {
-}
-
-void VROSceneRendererGVR::onRotateEvent(int rotateState, float rotateRadians, float viewportX,
-                                           float viewportY) {
 }
 
 void VROSceneRendererGVR::extractViewParameters(gvr::BufferViewport &viewport,

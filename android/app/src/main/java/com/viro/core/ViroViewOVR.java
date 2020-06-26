@@ -383,15 +383,6 @@ public class ViroViewOVR extends ViroView implements SurfaceHolder.Callback {
      * @hide
      */
     @Override
-    public boolean onTouchEvent( MotionEvent event ){
-        mNativeRenderer.onTouchEvent(event.getAction(), event.getX(), event.getY());
-        return true;
-    }
-
-    /**
-     * @hide
-     */
-    @Override
     public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
         //No-op
     }

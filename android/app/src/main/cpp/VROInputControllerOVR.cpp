@@ -44,24 +44,60 @@ VROInputControllerOVR::VROInputControllerOVR(std::shared_ptr<VRODriver> driver) 
                                                        false, 0}}};
 }
 
-void VROInputControllerOVR::processControllerState(std::vector<ControllerSnapShot> snapShots) {
-    // Refresh the connected state of the controller.
+void VROInputControllerOVR::processControllerState(std::vector<ControllerSnapShot> &snapShots) {
+    std::vector<VROEventDelegate::ControllerStat> allControllerStats;
+    // Iterate through each deviceID and notify delegates if it had changed.
     std::map<int, ControllerSnapShot>::iterator it;
     for ( it = _controllerSnapShots.begin(); it != _controllerSnapShots.end(); it++ ) {
-        it->second.isConnected = false;
-    }
-    for (ControllerSnapShot snapShot : snapShots) {
-        int deviceID = snapShot.deviceID;
-        _controllerSnapShots[deviceID].isConnected = true;
-        _controllerSnapShots[deviceID].trackingStatus6Dof = snapShot.trackingStatus6Dof;
-        _controllerSnapShots[deviceID].batteryPercentage = snapShot.batteryPercentage;
+        VROEventDelegate::ControllerStat stat;
+
+        // Grab the cached snapshot to compare against
+        int cachedDeviceId = it->first;
+        ControllerSnapShot cachedSnapShot = it->second;
+
+        // Compare against latest data to determine if something has changed.
+        int currentDeviceId = -1;
+        bool snapShotIsDifferent = false;
+        ControllerSnapShot currentSnap;
+
+        // First grab the snapshot with the same ID as the currently selected cached one.
+        for (ControllerSnapShot &inputSnap : snapShots) {
+            if (inputSnap.deviceID == cachedDeviceId) {
+                currentDeviceId = inputSnap.deviceID;
+                currentSnap = inputSnap;
+                break;
+            }
+        }
+
+        // if the device is not a part of the latest data, it is considered disconnected.
+        if (currentDeviceId == -1 && cachedSnapShot.isConnected) {
+            snapShotIsDifferent = true;
+            stat.deviceId = cachedDeviceId;
+            stat.isConnected = false;
+            stat.is6Dof = false;
+            stat.batteryPercentage = 0;
+        } else if (currentDeviceId != -1) {
+            snapShotIsDifferent = cachedSnapShot.isConnected != true ||
+                                  cachedSnapShot.trackingStatus6Dof != currentSnap.trackingStatus6Dof ||
+                                  cachedSnapShot.batteryPercentage != currentSnap.batteryPercentage;
+
+            stat.deviceId = currentSnap.deviceID;
+            stat.isConnected = true;
+            stat.is6Dof = currentSnap.trackingStatus6Dof;
+            stat.batteryPercentage = currentSnap.batteryPercentage;
+        }
+
+        // Add to the vector to notify delegates with and update the cache.
+        if (snapShotIsDifferent) {
+            allControllerStats.push_back({stat});
+            _controllerSnapShots[cachedDeviceId].isConnected =  stat.isConnected;
+            _controllerSnapShots[cachedDeviceId].trackingStatus6Dof = stat.is6Dof;
+            _controllerSnapShots[cachedDeviceId].batteryPercentage = stat.batteryPercentage;
+        }
     }
 
-    // Create the controller stat data with which to inform our delegates
-    std::vector<VROEventDelegate::ControllerStat> allControllerStats;
-    for ( it = _controllerSnapShots.begin(); it != _controllerSnapShots.end(); it++ ) {
-        ControllerSnapShot snap = it->second;
-        allControllerStats.push_back({snap.deviceID, snap.isConnected, snap.trackingStatus6Dof, snap.batteryPercentage});
+    if (allControllerStats.size() <= 0) {
+        return;
     }
 
     // Notify all delegates
@@ -147,6 +183,8 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
             !currentSnap.rotation.equals(snapShot.rotation)) {
             allMoveEvents.push_back({deviceID, deviceID, snapShot.position, snapShot.rotation});
         }
+
+        _controllerSnapShots[deviceID] = snapShot;
     }
 
     // First update positional transforms (used for hit testing).
@@ -156,9 +194,8 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
         VROInputControllerBase::onMove(allMoveEvents, shouldHitTest);
     }
 
-    // Finally process all button, hover and thumbstick events.
+    // Finally process all button events.
     if (allButtonEvents.size()> 0) {
-       // pwarn("Daniel process onbutton event");
         VROInputControllerBase::onButtonEvent(allButtonEvents);
     }
 
