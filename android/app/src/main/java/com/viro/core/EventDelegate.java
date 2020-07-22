@@ -32,9 +32,6 @@
  */
 package com.viro.core;
 
-import android.util.Log;
-import android.widget.Button;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +50,7 @@ public class EventDelegate {
      * for it to be triggered.
      *
      * These callbacks correspond to the set or subset of EventTypes above
-     * (Note they may not correspond 1 to 1 - certain EvenTypes may not yet
+     * (Note they may not correspond 1 to 1 - certain EventTypes may not yet
      * be needed or useful for Java views or components).
      *
      * @hide
@@ -65,25 +62,8 @@ public class EventDelegate {
         void onWeightedTriggerEvent(ArrayList<TriggerEvent> events);
         void onMove(ArrayList<MoveEvent> events);
         void onControllerStatus(ArrayList<ControllerStatus> events);
-
-        // Legacy APIs
-        /**
-         * @hide
-         */
         void onHover(int source, Node node, boolean isHovering, float hitLoc[]);
-        /**
-         * @hide
-         */
         void onClick(int source, Node node, ClickState clickState, float hitLoc[]);
-        /**
-         * @hide
-         */
-        //#IFDEF 'viro_react'
-        void onCameraTransformUpdate(float posX, float poxY, float posZ,
-                                     float rotEulerX, float rotEulerY, float rotEulerZ,
-                                     float forwardX, float forwardY, float forwardZ,
-                                     float upX, float upY, float upZ);
-        //#ENDIF
     }
 
     long mNativeRef;
@@ -145,13 +125,12 @@ public class EventDelegate {
      * VROEventDelegate.h
      */
     public enum EventAction {
-        ON_HOVER(1),                        // Node based
-        ON_CLICK(2),                        // Node based
-        ON_MOVE(3),                         // Controller based
-        ON_THUMBSTICK(4),                   // Controller based
-        ON_TRIGGER(5),                          // Controller based
-        ON_CONTROLLER_STATUS(6),            // Controller based
-        ON_CAMERA_TRANSFORM_UPDATE(7);     // Controller based
+        ON_HOVER(1),                            // Node + Controller based
+        ON_CLICK(2),                            // Node + Controller based
+        ON_MOVE(3),                             // Controller based only
+        ON_THUMBSTICK(4),                       // Controller based only
+        ON_TRIGGER(5),                          // Controller based only
+        ON_CONTROLLER_STATUS(6);                // Controller based only
 
         public final int mTypeId;
 
@@ -171,11 +150,13 @@ public class EventDelegate {
     }
 
     public class ButtonEvent {
-        public int deviceId; // TODO make final?
+        public int deviceId;
         public int source;
         public int hitNodeId;
         public ClickState state;
         public Vector intersecPos;
+
+        // Internal helper convertion param
         private int clickIntState;
     }
 
@@ -183,8 +164,7 @@ public class EventDelegate {
         public int deviceId;
         public int source;
         public boolean isHovering;
-        Vector intersecPos;
-
+        public Vector intersecPos;
     }
 
     public class ThumbStickEvent {
@@ -219,13 +199,11 @@ public class EventDelegate {
      that has been set through setEventDelegateCallback().
      */
     void onClick(ButtonEvent[] events) {
-        //Log.e("Daniel"," Button event Recieved from the JNI " + events.length);
         for (ButtonEvent event : events) {
             event.state = ClickState.valueOf(event.clickIntState);
         }
 
         if (mDelegate != null && mDelegate.get() != null) {
-            //Log.e("Daniel"," Button event TRIGGERd from the JNI " + events.length);
             mDelegate.get().onClick(new ArrayList<ButtonEvent>(Arrays.asList(events)));
         }
     }
@@ -237,21 +215,18 @@ public class EventDelegate {
     }
 
     void onThumbStickEvent(ThumbStickEvent[] events) {
-        Log.e("Daniel"," onThumbStickEvent Recieved from the JNI " + events.length);
         if (mDelegate != null && mDelegate.get() != null) {
             mDelegate.get().onThumbStickEvent(new ArrayList<ThumbStickEvent>(Arrays.asList(events)));
         }
     }
 
     void onWeightedTriggerEvent(TriggerEvent[] events) {
-        Log.e("Daniel"," onWeightedTriggerEvent Recieved from the JNI " + events.length);
         if (mDelegate != null && mDelegate.get() != null) {
             mDelegate.get().onWeightedTriggerEvent(new ArrayList<TriggerEvent>(Arrays.asList(events)));
         }
     }
 
     void onMove(MoveEvent[] events) {
-        Log.e("Daniel"," onMove Recieved from the JNI " + events.length);
         if (mDelegate != null && mDelegate.get() != null) {
             mDelegate.get().onMove(new ArrayList<MoveEvent>(Arrays.asList(events)));
         }
@@ -283,18 +258,4 @@ public class EventDelegate {
             mDelegate.get().onClick(source, node, ClickState.valueOf(clickState), position);
         }
     }
-    /**
-     * @hide
-     */
-    //#IFDEF 'viro_react'
-    void onCameraTransformUpdate(float posX, float poxY, float posZ,
-                                 float rotEulerX, float rotEulerY, float rotEulerZ,
-                                 float forwardX, float forwardY, float forwardZ,
-                                 float upX, float upY, float upZ) {
-        if (mDelegate != null && mDelegate.get() != null) {
-            mDelegate.get().onCameraTransformUpdate(posX, poxY, posZ, rotEulerX, rotEulerY, rotEulerZ,
-                                                    forwardX, forwardY, forwardZ, upX, upY, upZ);
-        }
-    }
-    //#ENDIF
 }

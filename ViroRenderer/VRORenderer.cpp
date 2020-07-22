@@ -538,10 +538,6 @@ void VRORenderer::renderHUD(VROEyeType eye, VROMatrix4f eyeFromHeadMatrix, VROMa
     _context->setViewMatrix(eyeFromHeadMatrix);
     _context->setProjectionMatrix(eyeProjection);
     _context->setEyeType(eye);
-#if VRO_PLATFORM_IOS || VRO_PLATFORM_ANDROID
-    _debugHUD->renderEye(eye, *_context.get(), driver);
-#endif
-
     /*
      For the reticle, we choose our view matrix based on whether or not it's headlocked.
      */
@@ -549,6 +545,10 @@ void VRORenderer::renderHUD(VROEyeType eye, VROMatrix4f eyeFromHeadMatrix, VROMa
     std::map<int, std::shared_ptr<VROReticle>>::iterator it;
     for (it = reticles.begin(); it != reticles.end(); it++){
         std::shared_ptr<VROReticle> reticle = it->second;
+        if (!reticle->isHudBased()) {
+            continue;
+        }
+
         if (reticle->isHeadlocked()) {
             _context->setViewMatrix(eyeFromHeadMatrix);
         }
@@ -557,6 +557,13 @@ void VRORenderer::renderHUD(VROEyeType eye, VROMatrix4f eyeFromHeadMatrix, VROMa
         }
         reticle->renderEye(eye, *_context.get(), driver);
     }
+
+
+#if VRO_PLATFORM_IOS || VRO_PLATFORM_ANDROID
+    _debugHUD->renderEye(eye, *_context.get(), driver);
+#endif
+
+
 
     // This unbinds the last shader to even out our pglpush and pops
     driver->unbindShader();

@@ -28,6 +28,7 @@
 #include "EventDelegate_JNI.h"
 #include "ViroUtils_JNI.h"
 #include "VROInputControllerBase.h"
+#include "VROInputPresenterOVR.h"
 
 #if VRO_PLATFORM_ANDROID
 #define VRO_METHOD(return_type, method_name) \
@@ -122,6 +123,28 @@ VRO_METHOD(void, nativeGetControllerForwardVectorAsync)(VRO_ARGS
                                     "onGetForwardVector", "(FFF)V", position.x, position.y, position.z);
         VRO_DELETE_LOCAL_REF(jCallback);
         VRO_DELETE_WEAK_GLOBAL_REF(weakCallback);
+    });
+}
+
+VRO_METHOD(void, nativeSetLightReceivingBitMask)(VRO_ARGS
+                                                 VRO_REF(ViroContext) context_j,
+                                                 VRO_INT bitMask) {
+
+    std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, context_j);
+
+    VROPlatformDispatchAsyncRenderer([nativeContext_w, bitMask] {
+        std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
+        if (!nativeContext) {
+            return;
+        }
+
+        std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
+        std::shared_ptr<VROInputPresenterOVR> ovrPresenter = std::dynamic_pointer_cast<VROInputPresenterOVR>(controllerPresenter);
+        if (ovrPresenter == nullptr) {
+            return;
+        }
+
+        ovrPresenter->setLightReceivingBitMask(bitMask);
     });
 }
 /**

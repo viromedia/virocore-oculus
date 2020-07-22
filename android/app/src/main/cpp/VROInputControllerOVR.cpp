@@ -106,7 +106,7 @@ void VROInputControllerOVR::processControllerState(std::vector<ControllerSnapSho
     }
 }
 
-void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapShots){
+void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapShots, const VROCamera &camera){
     std::vector<VROEventDelegate::ButtonEvent> allButtonEvents;
     std::vector<VROEventDelegate::ThumbStickEvent> allThumbStickEvents;
     std::vector<VROEventDelegate::MoveEvent> allMoveEvents;
@@ -118,14 +118,13 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
         return;
     }
 
+    // Reprocess event positional data with the updated camera.
+    for (ControllerSnapShot &snapShot : snapShots) {
+        snapShot.position = snapShot.position + camera.getBasePosition();
+    }
+
     for (ControllerSnapShot snapShot : snapShots) {
         int deviceID = snapShot.deviceID;
-
-        pwarn("Controller snapShot.deviceID : %" PRIu32"\n", snapShot.deviceID);
-        if (_controllerSnapShots.find(deviceID) == _controllerSnapShots.end()) {
-            pwarn("Controller is not supported size : %d", _controllerSnapShots.size());
-            continue;
-        }
         _controllerSnapShots[deviceID].isConnected = true;
         ControllerSnapShot &currentSnap = _controllerSnapShots[deviceID];
 
@@ -180,10 +179,9 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
 
         // Process through all controller positional data.
         if (!currentSnap.position.isEqual(snapShot.position) ||
-            !currentSnap.rotation.equals(snapShot.rotation)) {
+            !currentSnap.rotation.equals(snapShot.rotation, 0.0001)) {
             allMoveEvents.push_back({deviceID, deviceID, snapShot.position, snapShot.rotation});
         }
-
         _controllerSnapShots[deviceID] = snapShot;
     }
 
@@ -219,20 +217,4 @@ void VROInputControllerOVR::handleOVRKeyEvent(int keyCode, int action){
     if (keyCode == AKEYCODE_BACK ) {
         //    VROInputControllerBase::onButtonEvent(ViroOculus::BackButton, state);
     }
-}
-
-
-// TODO: Hook in Camera updates properly.
-void VROInputControllerOVR::onProcess(const VROCamera &camera) {
-    // Grab controller orientation
-    VROQuaternion rotation = camera.getRotation();
-    VROVector3f controllerForward = rotation.getMatrix().multiply(kBaseForward);
-
-    // Perform hit test
-    //VROInputControllerBase::updateHitNode(camera, camera.getPosition(), controllerForward);
-
-    // Process orientation and update delegates
-    // VROInputControllerBase::onMove(ViroOculus::InputSource::Controller, camera.getPosition(), rotation, controllerForward);
-    // VROInputControllerBase::processGazeEvent(ViroOculus::InputSource::Controller);
-    notifyCameraTransform(camera);
 }

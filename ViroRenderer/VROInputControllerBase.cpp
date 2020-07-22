@@ -67,7 +67,6 @@ void VROInputControllerBase::onButtonEvent(std::vector<VROEventDelegate::ButtonE
     for (VROEventDelegate::ButtonEvent &event : events) {
         // If no required hit result is found, we can't trigger button events.
         if (_deviceControllerState.find(event.deviceId) == _deviceControllerState.end()) {
-            pwarn("Daniel Missing required hit results for button event processing.");
             return;
         }
 
@@ -149,8 +148,6 @@ void VROInputControllerBase::onButtonEvent(std::vector<VROEventDelegate::ButtonE
 }
 
 void VROInputControllerBase::onMove(std::vector<VROEventDelegate::MoveEvent> &events, bool shouldUpdatehitTests) {
-    // TODO: Toggle shouldUpdatehitTests if hovered listeners are enabled.
-    // TODO: If enabled, mabye apply some kind of a threshold limiter.
     shouldUpdatehitTests = shouldUpdatehitTests || sHasHoverEvents;
 
     // Update all device input's transforms.
@@ -191,11 +188,12 @@ void VROInputControllerBase::onHover(std::vector<VROEventDelegate::MoveEvent> &e
 
         std::shared_ptr<VRONode> hoveredNode = _deviceControllerState[e.deviceId].hitResult->getNode();
         VROVector3f hitPos = _deviceControllerState[e.deviceId].hitResult->getLocation();
+        bool isBackgroundHit = _deviceControllerState[e.deviceId].hitResult->isBackgroundHit();
 
         // Based on what was last hovered, update on / off hovered nodes.
         std::shared_ptr<VROEventDelegate::HoverEvent> lastHoveredEvent = _deviceControllerState[e.deviceId].lastTrackedHoverEvent;
         std::shared_ptr<VRONode> lastHoveredNode = lastHoveredEvent == nullptr ? nullptr : lastHoveredEvent->onHoveredNode;
-        VROEventDelegate::HoverEvent tracked = { e.deviceId, e.source, true, hitPos, hoveredNode, lastHoveredNode};
+        VROEventDelegate::HoverEvent tracked = { e.deviceId, e.source, true, hitPos, hoveredNode, lastHoveredNode, isBackgroundHit};
 
         // Update our last hovered event and vecs for notification.
         _deviceControllerState[e.deviceId].lastTrackedHoverEvent = std::make_shared<VROEventDelegate::HoverEvent>(tracked);
@@ -227,17 +225,6 @@ void VROInputControllerBase::onHover(std::vector<VROEventDelegate::MoveEvent> &e
             }
         }
         _deviceControllerState[event.deviceId].lastTrackedOnHoveredNode = onHoverEventNode;
-    }
-}
-
-void VROInputControllerBase::notifyCameraTransform(const VROCamera &camera) {
-    if (_scene) {
-        std::shared_ptr<VROEventDelegate> delegate = _scene->getRootNode()->getEventDelegate();
-
-        if (delegate && delegate->isEventEnabled(VROEventDelegate::EventAction::OnCameraTransformUpdate)) {
-            delegate->onCameraTransformUpdate(camera.getPosition(), camera.getRotation().toEuler(),
-                                              camera.getForward(), camera.getUp());
-        }
     }
 }
 

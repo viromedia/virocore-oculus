@@ -56,8 +56,7 @@ public:
     virtual ~VROInputControllerOVR(){}
 
     void processControllerState(std::vector<ControllerSnapShot> &snapshots);
-    void processInput(std::vector<ControllerSnapShot> snapshots);
-    void onProcess(const VROCamera &camera); // TODO: Remove and Hook in camera updates properly.
+    void processInput(std::vector<ControllerSnapShot> snapshots, const VROCamera &camera);
 
     void handleOVRKeyEvent(int keyCode, int action); // TODO: Volume buttons?
 

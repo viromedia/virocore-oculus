@@ -389,11 +389,6 @@ public abstract class ViroBaseTest {
                 mTestButtonsClicked.set(true);
             }
         }
-
-        @Override
-        public void onCameraTransformUpdate(float posX, float poxY, float posZ, float rotEulerX, float rotEulerY, float rotEulerZ, float forwardX, float forwardY, float forwardZ, float upX, float upY, float upZ) {
-
-        }
     }
 
     protected void runUITest(Runnable runnable) {

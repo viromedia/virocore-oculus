@@ -63,7 +63,6 @@ public:
         OnThumbStick = 4,
         OnTrigger = 5,
         OnControllerStatus = 6,
-        OnCameraTransformUpdate = 7,
     };
 
     /*
@@ -94,6 +93,9 @@ public:
         // Node the click event is performed on?
         std::shared_ptr<VRONode> onHoveredNode;
         std::shared_ptr<VRONode> offHoveredNode;
+
+        // Internal use
+        bool isBackgroundHit;
     };
 
     struct MoveEvent {
@@ -125,12 +127,11 @@ public:
 
     // Disable all event callbacks by default
     VROEventDelegate() {
-        _enabledEventMap[VROEventDelegate::EventAction::OnMove] = false;                 // OVR
-        _enabledEventMap[VROEventDelegate::EventAction::OnClick] = false;                // OVR
-        _enabledEventMap[VROEventDelegate::EventAction::OnThumbStick] = false;                // OVR
-        _enabledEventMap[VROEventDelegate::EventAction::OnControllerStatus] = false;     // OVR
-        _enabledEventMap[VROEventDelegate::EventAction::OnCameraTransformUpdate] = false; // TODO
+        _enabledEventMap[VROEventDelegate::EventAction::OnMove] = false;
+        _enabledEventMap[VROEventDelegate::EventAction::OnClick] = false;
         _enabledEventMap[VROEventDelegate::EventAction::OnHover] = false;
+        _enabledEventMap[VROEventDelegate::EventAction::OnThumbStick] = false;
+        _enabledEventMap[VROEventDelegate::EventAction::OnControllerStatus] = false;
     }
     /*
      Informs the renderer to enable / disable the triggering of
@@ -161,8 +162,7 @@ public:
 
     // Can represent Events from different DeviceIDs, not sources
     virtual void onMove(std::vector<MoveEvent> &events) {
-        VROEventDelegate::MoveEvent e = events.front();
-        onMove(e.source, nullptr, e.rot.toEuler(), e.pos, VROVector3f());
+        // No-op
     }
 
     virtual void onThumbStickEvent(std::vector<ThumbStickEvent> &events) {
@@ -186,14 +186,6 @@ public:
     }
 
     virtual void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position) {
-        //No-op
-    }
-
-    virtual void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up) {
-        //No-op
-    }
-
-    virtual void onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec) {
         //No-op
     }
 private:

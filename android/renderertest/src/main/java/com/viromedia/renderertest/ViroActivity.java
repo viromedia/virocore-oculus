@@ -265,10 +265,8 @@ public class ViroActivity extends AppCompatActivity {
         mViroView.setCameraListener(new CameraListener() {
             @Override
             public void onTransformUpdate(Vector position, Vector r, Vector forward, Vector up) {
-
                 Vector l = new Vector(Math.toDegrees(r.x), Math.toDegrees(r.y),Math.toDegrees(r.z));
-
-                Log.e("Marcus","Cam : " + position + " , " + l + " , " + forward + " , " +up);
+                Log.e("Daniel","Cam : " + position + " , " + l + " , " + forward + " , " +up);
             }
         });
     }
@@ -645,9 +643,9 @@ public class ViroActivity extends AppCompatActivity {
     private List<Node> testBox(final Context context) {
         final Node pointOfView = new Node();
         final Camera camera = new Camera();
-        //camera.setPosition(new Vector(0, -0.5f, -0.5f));
-        //pointOfView.setCamera(camera);
-        pointOfView.setPosition(new Vector(0, -0.5f, -0.5f));
+       // camera.setPosition(new Vector(0, -0.5f, 10.5f));
+        pointOfView.setCamera(camera);
+        pointOfView.setPosition(new Vector(0, 0, 0));
         mViroView.setPointOfView(pointOfView);
 
 
@@ -682,22 +680,43 @@ public class ViroActivity extends AppCompatActivity {
         //material.setBloomThreshold(0.2f);
 
         // Creation of ViroBox to the right and billboarded
-        final Box boxGeometry = new Box(2, 2, 2);
+        final Box boxGeometry = new Box(0.5f, 0.5f, 0.5f);
         node1.setGeometry(boxGeometry);
-        final Vector boxPosition = new Vector(5, 0, -3);
+        final Vector boxPosition = new Vector(-2, 0, 1);
         node1.setPosition(boxPosition);
         boxGeometry.setMaterials(Arrays.asList(material));
-        final EnumSet<Node.TransformBehavior> behaviors = EnumSet.of(Node.TransformBehavior.BILLBOARD);
-        //node1.setTransformBehaviors(behaviors);
         node1.setEventDelegate(getGenericDelegate("Box"));
 
-        final Box boxGeometry2 = new Box(2, 2, 2);
+        final Box boxGeometry2 =  new Box(0.5f, 0.5f, 0.5f);
         node2.setGeometry(boxGeometry2);
-        final Vector boxPosition2 = new Vector(-2, 0, -3);
+        final Vector boxPosition2 = new Vector(1, 0, -2.5);
         node2.setPosition(boxPosition2);
         boxGeometry2.setMaterials(Arrays.asList(material));
         node2.setEventDelegate(getGenericDelegate("node2"));
 
+        final Node node4 = new Node();
+        final Box boxGeometry4 =  new Box(0.5f, 0.5f, 0.5f);
+        node4.setGeometry(boxGeometry4);
+        final Vector boxPosition4 = new Vector(0, 0, -4);
+        node4.setPosition(boxPosition4);
+        boxGeometry4.setMaterials(Arrays.asList(material));
+        node4.setEventDelegate(getGenericDelegate("node4"));
+
+        final Node node5 = new Node();
+        final Box boxGeometry5 =  new Box(0.5f, 0.5f, 0.5f);
+        node5.setGeometry(boxGeometry5);
+        final Vector boxPosition5 = new Vector(1, 0, -15);
+        node5.setPosition(boxPosition5);
+        boxGeometry2.setMaterials(Arrays.asList(material));
+        node5.setEventDelegate(getGenericDelegate("node5"));
+
+        final Node node6 = new Node();
+        final Box boxGeometry6 =  new Box(0.5f, 0.5f, 0.5f);
+        node6.setGeometry(boxGeometry6);
+        final Vector boxPosition6 = new Vector(2, 0, -27);
+        node6.setPosition(boxPosition6);
+        boxGeometry6.setMaterials(Arrays.asList(material));
+        node6.setEventDelegate(getGenericDelegate("node6"));
 
         // Light for the box
         Spotlight light = new Spotlight();
@@ -729,7 +748,7 @@ public class ViroActivity extends AppCompatActivity {
             }
         }, 1000);
 
-        return Arrays.asList(pointOfView, node1, node2, node3);
+        return Arrays.asList(pointOfView, node1, node2, node3, node4, node5, node6);
     }
 
     private List<Node> test3dObjectLoading(final Context context) {
@@ -1520,11 +1539,11 @@ public class ViroActivity extends AppCompatActivity {
 
     private EventDelegate getGenericDelegate(final String delegateTag){
         final EventDelegate delegateJni = new EventDelegate();
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, true);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_TRIGGER, true);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_THUMBSTICK, true);
+        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, false);
+        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_TRIGGER, false);
+       // delegateJni.setEventEnabled(EventDelegate.EventAction.ON_THUMBSTICK, false);
         delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CLICK, true);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CONTROLLER_STATUS, true);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_MOVE, true);
         lol = new GenericEventCallback(delegateTag);
         delegateJni.setEventDelegateCallback(lol);
 
@@ -1563,7 +1582,7 @@ public GenericEventCallback lol;
         @Override
         public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
             for (EventDelegate.HoverEvent event : events) {
-             //  Log.e("Daniel"," -> " + event.isHovering);
+               Log.e("Daniel"," -> " + event.isHovering);
             }
         }
 
@@ -1585,9 +1604,11 @@ public GenericEventCallback lol;
 
         @Override
         public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
-            for (EventDelegate.MoveEvent event : events) {
-               // Log.e("Daniel","MoveEvent -> " + event.pos);
-            }
+         //   Log.e("Daniel"," onMove #######");
+
+          //  for (EventDelegate.MoveEvent event : events) {
+            //    Log.e("Daniel","MoveEvent -> " + event.pos);
+          //  }
         }
 
         @Override
@@ -1602,6 +1623,7 @@ public GenericEventCallback lol;
 
         @Override
         public void onHover(final int source, final Node node, final boolean isHovering, final float[] hitLoc) {
+            Log.e("Daniel"," Normal hover Event");
           //  Log.e("Daniel", delegateTag + " JAVA  onHover " + isHovering);
         }
 
@@ -1609,14 +1631,6 @@ public GenericEventCallback lol;
         public void onClick(final int source, final Node node, final ClickState clickState, final float[] hitLoc) {
          //   Log.e("Daniel", delegateTag + " JAVA onButtonEvent " + clickState.toString() + " location " +
            //         hitLoc[0] + ", " + hitLoc[1] + ", " + hitLoc[2]);
-        }
-
-        @Override
-        public void onCameraTransformUpdate(float posX, float poxY, float posZ,
-                                            float rotEulerX, float rotEulerY, float rotEulerZ,
-                                            float forwardX, float forwardY, float forwardZ,
-                                            float upX, float upY, float upZ) {
-            Log.e(TAG, delegateTag + " On CameraTransformUpdate");
         }
     }
 }

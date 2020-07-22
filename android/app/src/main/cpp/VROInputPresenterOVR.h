@@ -51,11 +51,11 @@ public:
                 = std::make_shared<VROTexture>(true,
                                                VROMipmapMode::Runtime,
                                                VROPlatformLoadImageFromAsset("dd_reticle_large.png", VROTextureInternalFormat::RGBA8));
-        std::shared_ptr<VROReticle> LeftReticle = std::make_shared<VROReticle>(reticleTexture);
+        std::shared_ptr<VROReticle> LeftReticle = std::make_shared<VROReticle>(reticleTexture, false);
         LeftReticle->setPointerFixed(false);
         addReticle(ViroOculusInputEvent::ControllerLeftId, LeftReticle);
 
-        std::shared_ptr<VROReticle> rightReticle = std::make_shared<VROReticle>(reticleTexture);
+        std::shared_ptr<VROReticle> rightReticle = std::make_shared<VROReticle>(reticleTexture, false);
         rightReticle->setPointerFixed(false);
         addReticle(ViroOculusInputEvent::ControllerRightId, rightReticle);
 
@@ -71,38 +71,7 @@ public:
         getRootNode()->setIgnoreEventHandling(true);
         getRootNode()->setSelectable(false);
     }
-    std::shared_ptr<VRONode> cubeNode;
     ~VROInputPresenterOVR() {}
-
-
-    /*
-    void attachLaserToController(std::shared_ptr<VRODriver> driver) {
-        _laserTexture = std::make_shared<VROTexture>(true,
-                                                     VROMipmapMode::Runtime,
-                                                     VROPlatformLoadImageFromAsset("ddLaserTexture.jpg", VROTextureInternalFormat::RGBA8));
-        // Create our laser obj
-        std::string controllerObjAsset = VROPlatformCopyAssetToFile("ddlaser.obj");
-        _pointerNode = std::make_shared<VRONode>();
-        VROOBJLoader::loadOBJFromResource(controllerObjAsset, VROResourceType::LocalFile, _pointerNode, driver, [this](std::shared_ptr<VRONode> node, bool success) {
-            if (!success) {
-                perr("ERROR when loading controller obj!");
-                return;
-            }
-
-            // Set the lighting on this material to be constant
-            const std::shared_ptr<VROMaterial> &material = node->getGeometry()->getMaterials().front();
-            material->setLightingModel(VROLightingModel::Constant);
-            material->getDiffuse().setTexture(_laserTexture);
-            material->setWritesToDepthBuffer(false);
-            material->setReadsFromDepthBuffer(false);
-            material->setReceivesShadows(false);
-        });
-
-        _pointerNode->setPosition(_controllerNode->getPosition());
-        _pointerNode->setOpacity(0.6);
-        _pointerNode->setSelectable(false);
-        _elbowNode->addChildNode(_pointerNode);
-    }*/
 
      void onMove(std::vector<VROEventDelegate::MoveEvent> &events) {
         for (VROEventDelegate::MoveEvent event : events) {
@@ -130,6 +99,11 @@ public:
         VROInputPresenter::onHover(events);
     }
 
+    void setLightReceivingBitMask(int bitMask) {
+        _rightControllerBaseNode->setLightReceivingBitMask(bitMask, true);
+        _LeftControllerBaseNode->setLightReceivingBitMask(bitMask, true);
+    }
+
 private:
     std::shared_ptr<VROTexture> _laserTexture;
     std::shared_ptr<VRONode> _pointerNode;
@@ -141,21 +115,18 @@ private:
         std::shared_ptr<VRONode> controllerNod2 = std::make_shared<VRONode>();
         controllerNod2->setScale({0.015, 0.015, 0.015});
         controllerNod2->setRotationEulerY(toRadians(-180));
-        VROFBXLoader::loadFBXFromResource(modelSource, VROResourceType::URL, controllerNod2, driver, [this](std::shared_ptr<VRONode> node, bool success) {
+        VROFBXLoader::loadFBXFromResource(modelSource, VROResourceType::URL, controllerNod2, driver, [node,this](std::shared_ptr<VRONode> basenode, bool success) {
             if (!success) {
                 perr("ERROR when loading controller models!");
                 return;
             }
-        });
 
-        // std::shared_ptr<VRONode> controllerNode = std::make_shared<VRONode>();
+            basenode->computeTransforms(node->getWorldTransform(), node->getRotation().getMatrix());
+        });
         node->addChildNode(controllerNod2);
-        std::shared_ptr<VROLight> light = std::make_shared<VROLight>(VROLightType::Directional);
-        light->setIntensity(2100);
-        light->setDirection( { 0, -1.0, 0.0 });
-        node->addLight(light);
 
         // Create our laser obj
+
         std::string controllerObjAsset = VROPlatformCopyAssetToFile("ddlaser.obj");
         _pointerNode = std::make_shared<VRONode>();
         _pointerNode->setScale({0.1, 0.1, 0.1});
@@ -167,13 +138,16 @@ private:
 
             // Set the lighting on this material to be constant
             const std::shared_ptr<VROMaterial> &material = node->getGeometry()->getMaterials().front();
-            material->setLightingModel(VROLightingModel::Constant);
             material->getDiffuse().setTexture(_laserTexture);
             material->setReceivesShadows(false);
         });
 
+        // We'll need to rotate the line upwords (Since we are using a tilted daydream pointer cone)
+        VROQuaternion offsetRot = _pointerNode->getRotation();
+        offsetRot = offsetRot.fromAngleAxis(0.24002, VROVector3f(1, 0,0));
         _pointerNode->setPosition(controllerNod2->getPosition());
-        _pointerNode->setOpacity(1.0); // 0.6
+        _pointerNode->setRotation(offsetRot);
+        _pointerNode->setOpacity(1.0);
         _pointerNode->setSelectable(false);
         node->addChildNode(_pointerNode);
     }

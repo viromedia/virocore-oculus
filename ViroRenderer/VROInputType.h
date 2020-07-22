@@ -35,11 +35,12 @@
 
 /**
  * Header file containing sets of DeviceIds representing the device used per platform
- * and the InputSource representing the inputs triggered on those devices.
+ * and the InputSource representing the inputs triggered on those devices. This is done to
+ * ensure Viro-facing APIs are consistent, even if the underlying API changes.
  */
 namespace ViroOculusInputEvent {
-    const int ControllerRightId = 536870914;
-    const int ControllerLeftId = 536870915;
+    const int ControllerLeftId      = 0;
+    const int ControllerRightId     = 1;
     enum InputSource {
         None                = 0,
         Button_A            = 1,

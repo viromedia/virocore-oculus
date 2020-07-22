@@ -38,7 +38,7 @@
 
 static const float kReticleSizeMultiple = 4;
 static const bool kDebugSceneBackgroundDistance = false;
-
+class VROInputControllerBase;
 /*
  VROInputPresenter contains all UI view implementations to be displayed for a given
  VROInputController.
@@ -122,6 +122,10 @@ public:
     void addReticle(int id, std::shared_ptr<VROReticle> reticle){
         _reticles[id] = reticle;
         _reticleInitialPositionSet = false;
+
+        if (!reticle->isHudBased()) {
+            _rootNode->addChildNode(reticle->getBaseNode());
+        }
     }
 
     VROVector3f getLastKnownForward() {
@@ -147,15 +151,36 @@ protected:
         }
 
         float depth = -(event.intersecPos.distance(controllerPos));
-        if (!_reticles[reticleId]->isHeadlocked() && _camera != nullptr) {
-            _reticles[reticleId]->setPosition(event.intersecPos);
+        VROVector3f recticlePosition = event.intersecPos;
+
+        // **Experimental**
+        // For reticle behavior that can be occluded and is in the world.
+        if (!_reticles[reticleId]->isHudBased()) {
+            if (event.isBackgroundHit) {
+                VROVector3f proj = (event.intersecPos - controllerPos).normalize();
+                recticlePosition = controllerPos + (proj.scale(16));
+                depth = 16;
+            } else {
+                float posDepth = event.intersecPos.distance(controllerPos);
+                posDepth = VROMathClamp(posDepth, 0.5, INFINITY);
+                depth = -(posDepth);
+            }
 
             float worldPerScreen = _camera->getWorldPerScreen(depth);
             float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
-            radius = VROMathClamp(radius, 0.005, 0.05);
             _reticles[reticleId]->setRadius(radius);
-        }
-      //  else {
+            _reticleInitialPositionSet = true;
+
+            if (!_reticles[reticleId]->isHeadlocked() && _camera != nullptr) {
+                _reticles[reticleId]->setPosition(recticlePosition);
+            }
+        } else if (!_reticles[reticleId]->isHeadlocked()) {
+            depth = VROMathClamp(depth, 1.0, INFINITY);
+            float worldPerScreen = _camera->getWorldPerScreen(depth);
+            float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
+            _reticles[reticleId]->setRadius(radius);
+            _reticles[reticleId]->setPosition(recticlePosition);
+        } else {
             // Lock the Reticle's position to the center of the screen
             // for fixed pointer mode (usually Cardboard). The reticle is
             // rendered as HUD object, with view matrix identity (e.g. it
@@ -172,21 +197,19 @@ protected:
             // reticle depth, to avoid reticle 'popping' that occurs when
             // the user moves from an actual focused object to the background.
             // The background has no 'actual' depth so this is ok.
-         //   if (!_reticleInitialPositionSet || !hit.isBackgroundHit() || kDebugSceneBackgroundDistance) {
-         //       _reticle->setPosition(VROVector3f(0, 0, depth));
-               // _reticleInitialPositionSet = true;
+            if (!_reticleInitialPositionSet || !event.isBackgroundHit || kDebugSceneBackgroundDistance) {
+                _reticles[reticleId]->setPosition(VROVector3f(0, 0, depth));
+                _reticleInitialPositionSet = true;
 
-             //   float worldPerScreen = hit.getCamera().getWorldPerScreen(depth);
-                //float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
-                //_reticle->setRadius(radius);
-         //   }
-        //}
+                float worldPerScreen = _camera->getWorldPerScreen(depth);
+                float radius = fabs(worldPerScreen) * kReticleSizeMultiple;
+                _reticles[reticleId]->setRadius(radius);
+            }
+        }
     }
 
 private:
-
     std::weak_ptr<VROEventDelegate> _eventDelegateWeak;
-
     std::map<int, std::shared_ptr<VROReticle>> _reticles;
     bool _reticleInitialPositionSet;
     VROAtomic<VROVector3f> _lastKnownForward;

@@ -70,7 +70,6 @@ VRO_METHOD(void, nativeEnableEvent)(VRO_ARGS
         delegate->setEnabledEvent(eventType, enabled);
     });
 }
-
 }  // extern "C"
 
 void EventDelegate_JNI::onButtonEvent(std::vector<ButtonEvent> &events) {
@@ -110,8 +109,7 @@ void EventDelegate_JNI::onButtonEvent(std::vector<ButtonEvent> &events) {
         }
 
         // Notify the Java delegate
-        VROPlatformCallHostFunction(localObj,
-                                    "onClick", "([Lcom/viro/core/EventDelegate$ButtonEvent;)V", eventArray);
+        VROPlatformCallHostFunction(localObj, "onClick", "([Lcom/viro/core/EventDelegate$ButtonEvent;)V", eventArray);
         VRO_DELETE_LOCAL_REF(outerClass);
         VRO_DELETE_LOCAL_REF(localObj);
         VRO_DELETE_WEAK_GLOBAL_REF(weakObj);
@@ -158,8 +156,6 @@ void EventDelegate_JNI::onHover(std::vector<HoverEvent> &events) {
 }
 
 void EventDelegate_JNI::onThumbStickEvent(std::vector<ThumbStickEvent> &events){
-    pwarn("Daniel JNI onThumbStickEvent");
-
     VRO_ENV env = VROPlatformGetJNIEnv();
     VRO_WEAK weakObj = VRO_NEW_WEAK_GLOBAL_REF(_javaObject);
     VROPlatformDispatchAsyncApplication([weakObj, events] {
@@ -182,7 +178,7 @@ void EventDelegate_JNI::onThumbStickEvent(std::vector<ThumbStickEvent> &events){
                                                              event.axisLocation.x, event.axisLocation.y, event.axisLocation.z);
             VROPlatformSetObject(env, jEventObj, "axisLocation", "Lcom/viro/core/Vector;", jPos);
             VRO_ARRAY_SET(eventArray, i, jEventObj);
-pwarn("Daniel thumb stick pressed %d", event.isPressed);
+
             // Clean up our local reference to jObject after.
             VRO_DELETE_LOCAL_REF(jEventObj);
             VRO_DELETE_LOCAL_REF(jPos);
@@ -218,7 +214,6 @@ void EventDelegate_JNI::onWeightedTriggerEvent(std::vector<TriggerEvent> &events
             VROPlatformSetFloat(env, jEventObj, "weight", event.weight);
             VRO_ARRAY_SET(eventArray, i, jEventObj);
 
-            pwarn("Daniel trigger Trigger JNI");
             // Clean up our local reference to jObject after.
             VRO_DELETE_LOCAL_REF(jEventObj);
         }
@@ -231,6 +226,7 @@ void EventDelegate_JNI::onWeightedTriggerEvent(std::vector<TriggerEvent> &events
         VRO_DELETE_WEAK_GLOBAL_REF(weakObj);
     });
 }
+
 void EventDelegate_JNI::onMove(std::vector<MoveEvent> &events) {
     VROEventDelegate::onMove(events);
     VRO_ENV env = VROPlatformGetJNIEnv();
@@ -253,12 +249,9 @@ void EventDelegate_JNI::onMove(std::vector<MoveEvent> &events) {
             VRO_OBJECT jPos = VROPlatformConstructHostObject("com/viro/core/Vector", "(FFF)V",
                                                              event.pos.x, event.pos.y, event.pos.z);
             VROPlatformSetObject(env, jEventObj, "pos", "Lcom/viro/core/Vector;", jPos);
-
             VRO_OBJECT jRot = VROPlatformConstructHostObject("com/viro/core/Quaternion", "(FFFF)V",
                                                              event.rot.X, event.rot.Y, event.rot.Z, event.rot.W);
             VROPlatformSetObject(env, jEventObj, "rot", "Lcom/viro/core/Quaternion;", jRot);
-
-
             VRO_ARRAY_SET(eventArray, i, jEventObj);
 
             // Clean up our local reference to jObject after.
@@ -297,7 +290,7 @@ void EventDelegate_JNI::onControllerStatus(std::vector<ControllerStat> events) {
             VROPlatformSetBool(env, jEventObj, "is6Dof", event.is6Dof);
             VROPlatformSetInt(env, jEventObj, "batteryPercentage", event.batteryPercentage);
             VRO_ARRAY_SET(eventArray, i, jEventObj);
-pwarn("Daniel JNI onControllerStatus");
+
             // Clean up our local reference to jObject after.
             VRO_DELETE_LOCAL_REF(jEventObj);
         }
@@ -380,29 +373,6 @@ void EventDelegate_JNI::onClick(int source, std::shared_ptr<VRONode> node, Click
         int nodeId = node != nullptr ? node->getUniqueID() : sNullNodeID;
         VROPlatformCallHostFunction(localObj,
                                     "onClick", "(III[F)V", source, nodeId, clickState, positionArray);
-        VRO_DELETE_LOCAL_REF(localObj);
-        VRO_DELETE_WEAK_GLOBAL_REF(weakObj);
-    });
-}
-
-void EventDelegate_JNI::onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec) {
-    //No-op
-}
-
-void EventDelegate_JNI::onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up) {
-    VRO_ENV env = VROPlatformGetJNIEnv();
-    VRO_WEAK weakObj = VRO_NEW_WEAK_GLOBAL_REF(_javaObject);
-
-    VROPlatformDispatchAsyncApplication([weakObj, position, rotation, forward, up] {
-        VRO_ENV env = VROPlatformGetJNIEnv();
-        VRO_OBJECT localObj = VRO_NEW_LOCAL_REF(weakObj);
-        if (VRO_IS_OBJECT_NULL(localObj)) {
-            return;
-        }
-
-        VROPlatformCallHostFunction(localObj, "onCameraTransformUpdate", "(FFFFFFFFFFFF)V",
-                                    position.x, position.y, position.z, rotation.x, rotation.y, rotation.z,
-                                    forward.x, forward.y, forward.z, up.x, up.y, up.z);
         VRO_DELETE_LOCAL_REF(localObj);
         VRO_DELETE_WEAK_GLOBAL_REF(weakObj);
     });

@@ -102,6 +102,28 @@ public class Controller implements EventDelegate.EventDelegateCallback {
     }
 
     /**
+     * Set the reticle visibility on or off. The reticle is the small pointer that appears at the
+     * center of the screen, which is useful for tapping and fusing on objects.
+     * <p>
+     * Defaults to true.
+     *
+     * @param visible True to make the reticle visible, false to make it invisible.
+     */
+    public void setReticleVisible(boolean visible) {
+        mReticleVisible = visible;
+        nativeEnableReticle(mViroContext.mNativeRef, visible);
+    }
+
+    /**
+     * Returns true if the reticle is currently visible.
+     *
+     * @return True if the reticle is visible.
+     */
+    public boolean isReticleVisible() {
+        return mReticleVisible;
+    }
+
+    /**
      * Set the controller to visible or invisible. This currently only applies to the Daydream
      * platform, and determines whether the Daydream controller is displayed on the screen.
      * <p>
@@ -192,22 +214,15 @@ public class Controller implements EventDelegate.EventDelegateCallback {
     }
 
     /**
-     * This is used to notify the developer of the current camera transform. Not exposed to the Java API.
-     * @hide
+     * Set the bit mask that determines what lights will illuminate this Node. This bit mask is
+     * bitwise and-ed (&) with each Light's influenceBitMask. If the result is > 0, then the Light
+     * will illuminate this controller. The default value is 0x1.
      *
-     *
-     *
-     * TODO :REMOVE THIS
+     * @param bitMask The bit mask to set.
      */
-    //#IFDEF 'viro_react'
-    @Override
-    public void onCameraTransformUpdate(float posX, float poxY, float posZ,
-                                        float rotEulerX, float rotEulerY, float rotEulerZ,
-                                        float forwardX, float forwardY, float forwardZ,
-                                        float upX, float upY, float upZ) {
-
+    public void setLightReceivingBitMask(int bitMask) {
+        nativeSetLightReceivingBitMask(mViroContext.mNativeRef, bitMask);
     }
-    //#ENDIF
 
     /**
      * @hide
@@ -223,51 +238,6 @@ public class Controller implements EventDelegate.EventDelegateCallback {
         }
     }
 
-    @Override
-    public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
-        //  Log.e("Daniel"," onClick Fired #######");
-        for (EventDelegate.ButtonEvent event : events) {
-            //   Log.e("Daniel"," -> " + event.state);
-        }
-    }
-
-    @Override
-    public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
-        for (EventDelegate.HoverEvent event : events) {
-            //    Log.e("Daniel"," -> " + event.isHovering);
-        }
-    }
-
-    @Override
-    public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
-//  Log.e("Daniel"," ThumbStickEvent #######");
-        for (EventDelegate.ThumbStickEvent event : events) {
-            Log.e("Daniel","ThumbStickEvent -> " + event.isPressed);
-            Log.e("Daniel","ThumbStickEvent -> " + event.axisLocation);
-        }
-    }
-
-    @Override
-    public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
-        for (EventDelegate.TriggerEvent event : events) {
-            // Log.e("Daniel","TriggerEvent -> " + event.weight);
-        }
-    }
-
-    @Override
-    public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
-        for (EventDelegate.MoveEvent event : events) {
-            // Log.e("Daniel","MoveEvent -> " + event.pos);
-        }
-    }
-
-    @Override
-    public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
-        for (EventDelegate.ControllerStatus event : events) {
-            // Log.e("Daniel","MoveEvent -> " + event.pos);
-        }
-    }
-
     /**
      * @hide
      */
@@ -279,12 +249,42 @@ public class Controller implements EventDelegate.EventDelegateCallback {
         }
     }
 
+    @Override
+    public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
+    @Override
+    public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
+    @Override
+    public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
+    @Override
+    public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
+    @Override
+    public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
+    @Override
+    public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
+        // TODO: No-op, Not implemented for Viro-core
+    }
+
     private native void nativeSetEventDelegate(long contextRef, long delegateRef);
     private native void nativeEnableReticle(long contextRef, boolean enabled);
     private native void nativeEnableController(long contextRef, boolean enabled);
     private native float[] nativeGetControllerForwardVector(long contextRef);
-    private native void nativeGetControllerForwardVectorAsync(long renderContextRef,
-                                                              ControllerJniCallback callback);
+    private native void nativeGetControllerForwardVectorAsync(long renderContextRef, ControllerJniCallback callback);
+    protected native void nativeSetLightReceivingBitMask(long contextRef, int bitMask);
 
     /**
      * @hide

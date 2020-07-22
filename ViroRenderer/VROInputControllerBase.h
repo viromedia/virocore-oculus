@@ -41,8 +41,6 @@
 #include "VROGeometry.h"
 #include "VROInputType.h"
 
-static float kSceneBackgroundDistance = 8;
-
 /*
  Responsible for mapping generalized input data from a controller, to a unified
  set of VROEventDelegate.EventTypes. It then notifies corresponding VROEventDelegates

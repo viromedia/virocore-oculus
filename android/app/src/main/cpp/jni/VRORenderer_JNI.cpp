@@ -440,7 +440,6 @@ VRO_METHOD(void, nativeRemoveFrameListener)(VRO_ARGS
 VRO_METHOD(jboolean, nativeIsReticlePointerFixed)(VRO_ARGS
                                                   jlong native_renderer) {
     std::shared_ptr<VROSceneRenderer> sceneRenderer = Renderer::native(native_renderer);
-    pwarn("Daniel get pre 1");
     return false;
 }
 

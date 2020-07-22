@@ -57,6 +57,7 @@
 #include "VROInstancedUBO.h"
 #include "VROPlatformUtil.h"
 #include "VROMorpher.h"
+#include "VROPencil.h"
 
 // Opacity below which a node is considered hidden
 static const float kHiddenOpacityThreshold = 0.02;
@@ -627,6 +628,16 @@ void VRONode::applyConstraints(const VRORenderContext &context, VROMatrix4f pare
     }
 
     /*
+        std::shared_ptr<VROPencil>  p = context.getPencil();
+        VROVector3f s = VROVector3f(_worldUmbrellaBoundingBox.getMinX(), _worldUmbrellaBoundingBox.getMinY(), _worldUmbrellaBoundingBox.getMinZ());
+        VROVector3f l = VROVector3f(_worldUmbrellaBoundingBox.getMaxX(), _worldUmbrellaBoundingBox.getMaxY(), _worldUmbrellaBoundingBox.getMaxZ());
+        p->draw({s.x, s.y, s.z}, {l.x, s.y, s.z});
+        p->draw({l.x, s.y, s.z}, {l.x, l.y, s.z});
+        p->draw({l.x, l.y, s.z}, {s.x, l.y, s.z});
+        p->draw({s.x, l.y, s.z}, {s.x, s.y, s.z});
+    */
+
+    /*
      Move down the tree.
      */
     for (std::shared_ptr<VRONode> &childNode : _subnodes) {
@@ -694,7 +705,7 @@ void VRONode::updateVisibility(const VRORenderContext &context) {
     else {
         result = frustum.intersectAllOpt(_worldUmbrellaBoundingBox, &_umbrellaBoxMetadata);
     }
-    
+
     // Process the results of the frustum test, iterating down the tree if there
     // was an intersection, or else wholesale including or excluding all child nodes
     // in the other two cases.

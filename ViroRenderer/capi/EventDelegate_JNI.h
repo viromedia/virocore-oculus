@@ -36,7 +36,6 @@
 #include "VRONode.h"
 #include "VROARHitTestResult.h"
 #include "Node_JNI.h"
-
 #include "VRODefines.h"
 #include VRO_C_INCLUDE
 
@@ -58,7 +57,7 @@ public:
     }
 
     /*
-
+     Java event delegates to be triggered across the JNI bridge.
      */
     void onButtonEvent(std::vector<ButtonEvent> &events);
     void onHover(std::vector<HoverEvent> &events);
@@ -66,15 +65,8 @@ public:
     void onWeightedTriggerEvent(std::vector<TriggerEvent> &events);
     void onControllerStatus(std::vector<ControllerStat> status);
     void onMove(std::vector<MoveEvent> &events);
-
-
-    /*
-     Java event delegates to be triggered across the JNI bridge.
-     */
     void onHover(int source, std::shared_ptr<VRONode> node, bool isHovering, std::vector<float> position);
     void onClick(int source, std::shared_ptr<VRONode> node, ClickState clickState, std::vector<float> position);
-    void onMove(int source, std::shared_ptr<VRONode> node, VROVector3f rotation, VROVector3f position, VROVector3f forwardVec);
-    void onCameraTransformUpdate(VROVector3f position, VROVector3f rotation, VROVector3f forward, VROVector3f up);
 
 private:
     VRO_OBJECT _javaObject;

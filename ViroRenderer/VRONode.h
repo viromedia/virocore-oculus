@@ -74,6 +74,7 @@ class VROIKRig;
 extern bool kDebugSortOrder;
 extern int  kDebugSortOrderFrameFrequency;
 extern const std::string kDefaultNodeTag;
+static const float kSceneBackgroundDistance = 8;
 
 enum class VRONodeType {
     Normal,
@@ -314,7 +315,7 @@ public:
     VROBoundingBox getLastWorldUmbrellaBoundingBox() const;
     VROBoundingBox getLastLocalUmbrellaBoundingBox() const;
     VROBoundingBox getLastLocalBoundingBox() const;
-    
+
     /*
      The atomic geometry bounding box is set on the application thread as soon as a
      geometry is set for this Node.

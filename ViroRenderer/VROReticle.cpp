@@ -40,7 +40,8 @@ static const float kTriggerAnimationInnerCircleThicknessMultiple = 3;
 static const float kCircleSegments = 64;
 static const float kFuseRadiusMultiplier = 3;
 
-VROReticle::VROReticle(std::shared_ptr<VROTexture> reticleTexture) :
+VROReticle::VROReticle(std::shared_ptr<VROTexture> reticleTexture, bool hudBased) :
+    _hudBased(hudBased),
     _isHeadlocked(true),
     _enabled(true),
     _isFusing(false),
@@ -60,8 +61,8 @@ VROReticle::VROReticle(std::shared_ptr<VROTexture> reticleTexture) :
         std::vector<VROVector3f> path = createArc(_size, kCircleSegments);
         _reticleLine = VROPolyline::createPolyline(path, _thickness);
         _reticleLine->setName("Reticle");
-        _reticleLine->getMaterials().front()->setWritesToDepthBuffer(false);
-        _reticleLine->getMaterials().front()->setReadsFromDepthBuffer(false);
+        _reticleLine->getMaterials().front()->setWritesToDepthBuffer(_hudBased ? true : false);
+        _reticleLine->getMaterials().front()->setReadsFromDepthBuffer(_hudBased ? true : false);
         _reticleLine->getMaterials().front()->setReceivesShadows(false);
         _reticleLine->getMaterials().front()->getDiffuse().setColor({0.33, 0.976, 0.968, 1.0});
         _reticleBaseNode->setGeometry(_reticleLine);
@@ -153,6 +154,10 @@ void VROReticle::setEnabled(bool enabled) {
     _fuseNode->setHidden(!enabled);
     _fuseBackgroundNode->setHidden(!enabled);
     _fuseTriggeredNode->setHidden(!enabled);
+}
+
+std::shared_ptr<VRONode> VROReticle::getBaseNode() {
+    return _reticleBaseNode;
 }
 
 void VROReticle::setPosition(VROVector3f position){

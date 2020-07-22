@@ -123,8 +123,8 @@ typedef void(GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(
 static const int CPU_LEVEL = 2;
 static const int GPU_LEVEL = 3;
 static const int NUM_MULTI_SAMPLES = 4;
-static const int OVR_RIGHT_HANDED = 536870915;
-static const int OVR_LEFT_HANDED = 536870914;
+const unsigned int ControllerRightId = 536870914;
+const unsigned int ControllerLeftId = 536870915;
 /*
 ================================================================================
 
@@ -703,6 +703,7 @@ static void ovrRenderer_Create(ovrRenderer* renderer, const ovrJava* java, const
 static void ovrRenderer_Destroy(ovrRenderer* renderer) {
     for (int eye = 0; eye < renderer->NumBuffers; eye++) {
         ovrFramebuffer_Destroy(&renderer->FrameBuffer[eye]);
+        ovrFramebuffer_Destroy(&renderer->HUDFrameBuffer[eye]);
     }
 }
 
@@ -732,6 +733,7 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
                                                    long long frameIndex,
                                                    const ovrSimulation* simulation,
                                                    const ovrTracking2* tracking, ovrMobile* ovr,
+                                                   std::vector<VROInputControllerOVR::ControllerSnapShot> &snapShots,
                                                    ovrLayerProjection2 *sceneLayer,
                                                    ovrLayerProjection2 *hudLayer) {
 
@@ -786,10 +788,42 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
     float fovY = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y );
     VROFieldOfView fov(fovX / 2.0, fovX / 2.0, fovY / 2.0, fovY / 2.0);
     VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, renderer->getFarClippingPlane());
-
-    VROVector3f headPosition = toMatrix4f(updatedTracking.Eye[0].ViewMatrix).extractTranslation().scale(-1);
+    VROVector3f headPosition = toMatrix4f(updatedTracking.Eye[0].ViewMatrix).invert().extractTranslation();
     renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, headPosition, projection,
                            driver);
+
+    // Finally report the state
+    std::shared_ptr<VROInputControllerBase> inputControllerBase
+            = renderer->getInputController();
+    inputControllerBase->getPresenter()->updateCamera(renderer->getCamera());
+    std::shared_ptr<VROInputControllerOVR> inputControllerOvr
+            = std::dynamic_pointer_cast<VROInputControllerOVR>(inputControllerBase);
+    inputControllerOvr->processInput(snapShots, renderer->getCamera());
+
+    // Render the HUD to the textures in the HUD layer
+    for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
+        ovrFramebuffer *frameBuffer = &rendererOVR->HUDFrameBuffer[eye];
+        ovrFramebuffer_SetCurrent(frameBuffer);
+        std::dynamic_pointer_cast<VRODisplayOpenGLOVR>(driver->getDisplay())->setFrameBuffer(
+                frameBuffer);
+
+        GL(glEnable(GL_SCISSOR_TEST));
+        GL(glScissor(0, 0, frameBuffer->Width, frameBuffer->Height));
+        GL(glViewport(0, 0, frameBuffer->Width, frameBuffer->Height));
+
+        GL(glEnable(GL_DEPTH_TEST));
+        GL(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+        GL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+        VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left
+                                                                 : VROEyeType::Right;
+        renderer->renderHUD(eyeType, eyeFromHeadMatrix[eye],
+                            toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix), driver);
+
+        ovrRenderer_clearBorder(frameBuffer);
+        ovrFramebuffer_Resolve(frameBuffer);
+        ovrFramebuffer_Advance(frameBuffer);
+    }
 
     // Render the scene to the textures in the scene layer
     for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
@@ -825,28 +859,10 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
                             toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix),
                             viewport, driver);
 
+       // pwarn("Marcus Eye: %d, index: %d, length %d",
+        //      eye, frameBuffer->TextureSwapChainIndex, frameBuffer->TextureSwapChainLength);
+
         // Explicitly clear the border texels to black when GL_CLAMP_TO_BORDER is not available.
-        ovrRenderer_clearBorder(frameBuffer);
-        ovrFramebuffer_Resolve(frameBuffer);
-        ovrFramebuffer_Advance(frameBuffer);
-    }
-
-    // Render the HUD to the textures in the HUD layer
-    for (int eye = 0; eye < rendererOVR->NumBuffers; eye++) {
-        ovrFramebuffer *frameBuffer = &rendererOVR->HUDFrameBuffer[eye];
-        ovrFramebuffer_SetCurrent(frameBuffer);
-
-        GL( glEnable(GL_SCISSOR_TEST) );
-        GL( glScissor( 0, 0, frameBuffer->Width, frameBuffer->Height) );
-        GL( glViewport(0, 0, frameBuffer->Width, frameBuffer->Height) );
-
-        GL( glEnable(GL_DEPTH_TEST) );
-        GL( glClearColor(0.0f, 0.0f, 0.0f, 0.0f) );
-        GL( glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) );
-
-        VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
-        renderer->renderHUD(eyeType, eyeFromHeadMatrix[eye], toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix), driver);
-
         ovrRenderer_clearBorder(frameBuffer);
         ovrFramebuffer_Resolve(frameBuffer);
         ovrFramebuffer_Advance(frameBuffer);
@@ -969,10 +985,9 @@ static void ovrApp_HandleVrModeChanges(ovrApp* app) {
     }
 }
 
-static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
+static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime,
+                               std::vector<VROInputControllerOVR::ControllerSnapShot> &snapShots) {
     bool backButtonDownThisFrame = false;
-    std::vector<VROInputControllerOVR::ControllerSnapShot> snapShots;
-
     for (int i = 0;; i++) {
         ovrInputCapabilityHeader cap;
         ovrResult result = vrapi_EnumerateInputDevices(app->Ovr, i, &cap);
@@ -999,9 +1014,13 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
         ovrInputStateTrackedRemote trackedRemoteState;
         trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
         result = vrapi_GetCurrentInputState(app->Ovr, cap.DeviceID, &trackedRemoteState.Header);
-        snapShot.deviceID = cap.DeviceID;
+
+        if (ControllerRightId == cap.DeviceID) {
+            snapShot.deviceID = ViroOculusInputEvent::ControllerRightId;
+        } else if (ControllerLeftId == cap.DeviceID) {
+            snapShot.deviceID = ViroOculusInputEvent::ControllerLeftId;
+        }
         snapShot.batteryPercentage = trackedRemoteState.BatteryPercentRemaining;
-        pwarn("Controller cap.DeviceID: %" PRIu32"\n snapShot.deviceID %d", cap.DeviceID, snapShot.deviceID);
 
         if (result == ovrSuccess) {
             // Grab the buttons
@@ -1018,7 +1037,8 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
         } else {
             continue;
         }
-        // Because OVR makes us do STUPID SHIT TO GRAB A FUCKING POSITION VALUE.
+
+        // Grab the Positional tracking value
         ovrTracking tracking;
         ovrResult posTrackingResult = vrapi_GetInputTrackingState(app->Ovr,
                 cap.DeviceID, predictedDisplayTime, &tracking);
@@ -1036,16 +1056,7 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime) {
         snapShots.push_back(snapShot);
     }
 
-    // Finally report the state
-    std::shared_ptr<VROInputControllerBase> inputControllerBase
-            = app->vroRenderer->getInputController();
-    inputControllerBase->getPresenter()->updateCamera(app->vroRenderer->getCamera());
-    std::shared_ptr<VROInputControllerOVR> inputControllerOvr
-            = std::dynamic_pointer_cast<VROInputControllerOVR>(inputControllerBase);
-    inputControllerOvr->processInput(snapShots);
-
     backButtonDownThisFrame |= app->GamePadBackButtonDown;
-
     bool backButtonDownLastFrame = app->BackButtonDownLastFrame;
     app->BackButtonDownLastFrame = backButtonDownThisFrame;
 
@@ -1434,7 +1445,8 @@ void* AppThreadFunction(void* parm) {
                 vrapi_GetPredictedTracking2(appState.Ovr, predictedDisplayTime);
 
         appState.DisplayTime = predictedDisplayTime;
-        ovrApp_HandleInput(&appState, predictedDisplayTime);
+        std::vector<VROInputControllerOVR::ControllerSnapShot> eventSnapShots;
+        ovrApp_HandleInput(&appState, predictedDisplayTime, eventSnapShots);
 
         // Advance the simulation based on the elapsed time since start of loop till predicted
         // display time.
@@ -1450,7 +1462,7 @@ void* AppThreadFunction(void* parm) {
                 appState.driver,
                 appState.FrameIndex,
                 &appState.Simulation,
-                &tracking, appState.Ovr, &worldLayer, &hudLayer);
+                &tracking, appState.Ovr, eventSnapShots, &worldLayer, &hudLayer);
 
         const ovrLayerHeader2 * layers[] = {
                 &worldLayer.Header,

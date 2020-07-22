@@ -44,7 +44,7 @@ class VROReticle {
 
 public:
 
-    VROReticle(std::shared_ptr<VROTexture> icon);
+    VROReticle(std::shared_ptr<VROTexture> icon, bool hudBased = true);
     virtual ~VROReticle();
 
     void trigger();
@@ -54,6 +54,10 @@ public:
     void setRadius(float radius);
 
     void setEnabled(bool enabled);
+    std::shared_ptr<VRONode> getBaseNode();
+    bool isHudBased() {
+        return _hudBased;
+    }
 
     /*
      If pointer is fixed, the reticle will be locked at the center of each eye. This is used for
@@ -73,7 +77,7 @@ private:
      that can be used to point.
      */
     bool _isHeadlocked;
-
+    bool _hudBased;
     bool _enabled;
     float _size;
     float _radius;
