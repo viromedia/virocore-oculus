@@ -74,8 +74,6 @@ VRO_METHOD(jlong, nativeCreateRendererGVR)(VRO_ARGS
                                            jboolean enableBloom) {
     VROPlatformSetType(VROPlatformType::AndroidGVR);
 
-    std::shared_ptr<gvr::AudioApi> gvrAudio = std::make_shared<gvr::AudioApi>();
-    gvrAudio->Init(env, android_context, class_loader, GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY);
     VROPlatformSetEnv(env, android_context, asset_mgr, platform_util);
 
     VRORendererConfiguration config;
@@ -86,7 +84,7 @@ VRO_METHOD(jlong, nativeCreateRendererGVR)(VRO_ARGS
 
     gvr_context *gvrContext = reinterpret_cast<gvr_context *>(native_gvr_api);
     std::shared_ptr<VROSceneRenderer> renderer
-            = std::make_shared<VROSceneRendererGVR>(config, gvrContext, gvrAudio);
+            = std::make_shared<VROSceneRendererGVR>(config, gvrContext);
     return Renderer::jptr(renderer);
 }
 
@@ -102,9 +100,6 @@ VRO_METHOD(jlong, nativeCreateRendererOVR)(VRO_ARGS
                                            jboolean enablePBR,
                                            jboolean enableBloom) {
     VROPlatformSetType(VROPlatformType::AndroidOVR);
-
-    std::shared_ptr<gvr::AudioApi> gvrAudio = std::make_shared<gvr::AudioApi>();
-    gvrAudio->Init(env, android_context, class_loader, GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY);
     VROPlatformSetEnv(env, android_context, asset_mgr, platform_util);
 
     VRORendererConfiguration config;
@@ -114,7 +109,7 @@ VRO_METHOD(jlong, nativeCreateRendererOVR)(VRO_ARGS
     config.enableBloom = enableBloom;
 
     std::shared_ptr<VROSceneRenderer> renderer
-            = std::make_shared<VROSceneRendererOVR>(config, gvrAudio, view, activity, env);
+            = std::make_shared<VROSceneRendererOVR>(config, view, activity, env);
 
     return Renderer::jptr(renderer);
 }
@@ -130,9 +125,6 @@ VRO_METHOD(jlong, nativeCreateRendererSceneView)(VRO_ARGS
                                                  jboolean enablePBR,
                                                  jboolean enableBloom) {
     VROPlatformSetType(VROPlatformType::AndroidSceneView);
-
-    std::shared_ptr<gvr::AudioApi> gvrAudio = std::make_shared<gvr::AudioApi>();
-    gvrAudio->Init(env, android_context, class_loader, GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY);
     VROPlatformSetEnv(env, android_context, asset_mgr, platform_util);
 
     VRORendererConfiguration config;
@@ -142,7 +134,7 @@ VRO_METHOD(jlong, nativeCreateRendererSceneView)(VRO_ARGS
     config.enableBloom = enableBloom;
 
     std::shared_ptr<VROSceneRenderer> renderer
-            = std::make_shared<VROSceneRendererSceneView>(config, gvrAudio, view);
+            = std::make_shared<VROSceneRendererSceneView>(config, view);
     return Renderer::jptr(renderer);
 }
 

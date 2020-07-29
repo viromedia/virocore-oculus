@@ -30,8 +30,7 @@
 class VRODriverOpenGLAndroidOVR : public VRODriverOpenGLAndroid {
 public:
 
-    VRODriverOpenGLAndroidOVR(std::shared_ptr<gvr::AudioApi> gvrAudio) :
-            VRODriverOpenGLAndroid(gvrAudio) {
+    VRODriverOpenGLAndroidOVR() {
     }
     virtual ~VRODriverOpenGLAndroidOVR() { }
 

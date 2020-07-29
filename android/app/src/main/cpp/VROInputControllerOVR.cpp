@@ -195,9 +195,8 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
 
     // First update positional transforms (used for hit testing).
     // Move Events SHOULD only be the size of the number of supported devices.
-    bool shouldHitTest = allButtonEvents.size() > 0;
     if (allMoveEvents.size() > 0) {
-        VROInputControllerBase::onMove(allMoveEvents, shouldHitTest);
+        VROInputControllerBase::onMove(allMoveEvents);
     }
 
     // Finally process all button events.

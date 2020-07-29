@@ -54,13 +54,12 @@ static VROVector3f const kZeroVector = VROVector3f();
 
 #pragma mark - Setup
 
-VROSceneRendererARCore::VROSceneRendererARCore(VRORendererConfiguration config,
-                                               std::shared_ptr<gvr::AudioApi> gvrAudio) :
+VROSceneRendererARCore::VROSceneRendererARCore(VRORendererConfiguration config) :
     _arcoreInstalled(false),
     _destroyed(false) {
     perror("VROSceneRendererARCore is Not Supported");
 
-    _driver = std::make_shared<VRODriverOpenGLAndroid>(gvrAudio);
+    _driver = std::make_shared<VRODriverOpenGLAndroid>();
     _session = std::make_shared<VROARSessionARCore>(_driver);
 
     // instantiate the input controller w/ viewport size (0,0) and update it later.

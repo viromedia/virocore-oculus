@@ -32,8 +32,7 @@
 // boundaries.
 //
 // See here: https://github.com/android-ndk/ndk/issues/533#issuecomment-335977747
-VRODriverOpenGLAndroid::VRODriverOpenGLAndroid(std::shared_ptr<gvr::AudioApi> gvrAudio) :
-        _gvrAudio(gvrAudio),
+VRODriverOpenGLAndroid::VRODriverOpenGLAndroid() :
         _ft(nullptr) {
 }
 

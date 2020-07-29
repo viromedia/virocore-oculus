@@ -42,7 +42,7 @@ class VRODriverOpenGLAndroid : public VRODriverOpenGL {
 
 public:
 
-    VRODriverOpenGLAndroid(std::shared_ptr<gvr::AudioApi> gvrAudio);
+    VRODriverOpenGLAndroid();
     virtual ~VRODriverOpenGLAndroid();
 
     virtual VROColorRenderingMode getColorRenderingMode() {
@@ -69,18 +69,13 @@ public:
     }
 
     void willRenderFrame(const VRORenderContext &context) {
-        _gvrAudio->SetHeadPose(VROGVRUtil::toGVRMat4f(context.getCamera().getLookAtMatrix()));
-        _gvrAudio->Update();
-
         VRODriverOpenGL::willRenderFrame(context);
     }
 
     void pause() {
-        _gvrAudio->Pause();
     }
 
     void resume() {
-        _gvrAudio->Resume();
     }
 
     std::shared_ptr<VROVideoTextureCache> newVideoTextureCache() {
@@ -89,11 +84,11 @@ public:
     }
 
     std::shared_ptr<VROSound> newSound(std::shared_ptr<VROSoundData> data, VROSoundType type) {
-        return VROSoundGVR::create(data, _gvrAudio, type);
+        return nullptr;
     }
 
     std::shared_ptr<VROSound> newSound(std::string resource, VROResourceType resourceType, VROSoundType type) {
-        return VROSoundGVR::create(resource, resourceType, _gvrAudio, type);
+        return nullptr;
     }
 
     std::shared_ptr<VROAudioPlayer> newAudioPlayer(std::shared_ptr<VROSoundData> data) {
@@ -110,15 +105,7 @@ public:
 
     void setSoundRoom(float sizeX, float sizeY, float sizeZ, std::string wallMaterial,
                               std::string ceilingMaterial, std::string floorMaterial) {
-        if (sizeX == 0 && sizeY == 0 && sizeZ == 0) {
-            _gvrAudio->EnableRoom(false);
-        } else {
-            _gvrAudio->EnableRoom(true);
-            _gvrAudio->SetRoomProperties(sizeX, sizeY, sizeZ,
-                                         (gvr_audio_material_type) VROPlatformParseGVRAudioMaterial(wallMaterial),
-                                         (gvr_audio_material_type) VROPlatformParseGVRAudioMaterial(ceilingMaterial),
-                                         (gvr_audio_material_type) VROPlatformParseGVRAudioMaterial(floorMaterial));
-        }
+        pwarn("3D Sound not supported on Quest!");
     }
 
     void setSRGBFramebuffer(bool sRGBFramebuffer) {
@@ -181,7 +168,6 @@ protected:
 private:
 
     bool _sRGBFramebuffer;
-    std::shared_ptr<gvr::AudioApi> _gvrAudio;
     FT_Library _ft;
 
 

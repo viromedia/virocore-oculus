@@ -47,14 +47,13 @@ static const uint64_t kPredictionTimeWithoutVsyncNanos = 50000000;
 #pragma mark - Setup
 
 VROSceneRendererGVR::VROSceneRendererGVR(VRORendererConfiguration config,
-                                         gvr_context* gvr_context,
-                                         std::shared_ptr<gvr::AudioApi> gvrAudio) :
+                                         gvr_context* gvr_context) :
     _gvr(gvr::GvrApi::WrapNonOwned(gvr_context)),
     _sceneViewport(_gvr->CreateBufferViewport()),
     _vrModeEnabled(true) {
     perror("VROSceneRendererGVR is Not Supported");
 
-    _driver = std::make_shared<VRODriverOpenGLAndroidGVR>(gvrAudio);
+    _driver = std::make_shared<VRODriverOpenGLAndroidGVR>();
 
     // Create corresponding controllers - cardboard, or daydream if supported.
     _viewerType = _gvr->GetViewerType();

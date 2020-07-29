@@ -50,10 +50,9 @@ static VROVector3f const kZeroVector = VROVector3f();
 #pragma mark - Setup
 
 VROSceneRendererSceneView::VROSceneRendererSceneView(VRORendererConfiguration config,
-                                                     std::shared_ptr<gvr::AudioApi> gvrAudio,
                                                      jobject viroViewJNI) {
     perror("VROSceneRendererSceneView is Not Supported");
-    _driver = std::make_shared<VRODriverOpenGLAndroid>(gvrAudio);
+    _driver = std::make_shared<VRODriverOpenGLAndroid>();
     // instantiate the input controller w/ viewport size (0,0) and update it later.
     _renderer = std::make_shared<VRORenderer>(config, nullptr);
 }

@@ -44,7 +44,6 @@ class VROSceneRendererOVR : public VROSceneRenderer {
 public:
 
     VROSceneRendererOVR(VRORendererConfiguration config,
-                        std::shared_ptr<gvr::AudioApi> gvrAudio,
                         jobject view, jobject activity, JNIEnv *env);
     virtual ~VROSceneRendererOVR();
 
@@ -79,7 +78,6 @@ private:
     ovrAppThread *_appThread;
     jobject _surface;
     jobject _view;
-
 };
 
 #endif //ANDROID_VROSCENERENDEREROVR_H
