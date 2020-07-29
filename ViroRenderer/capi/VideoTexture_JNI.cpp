@@ -105,8 +105,15 @@ VRO_METHOD(void, nativeAttachDelegate)(VRO_ARGS
 
 VRO_METHOD(void, nativeDeleteVideoTexture)(VRO_ARGS
                                            VRO_REF(VROVideoTexture) textureRef) {
-    std::shared_ptr<VROVideoTexture> videoTexture = VRO_REF_GET(VROVideoTexture, textureRef);
-    videoTexture->pause();
+    //std::shared_ptr<VROVideoTexture> videoTexture = VRO_REF_GET(VROVideoTexture, textureRef);
+    std::weak_ptr<VROVideoTexture> videoTexture_w = VRO_REF_GET(VROVideoTexture, textureRef);
+    VROPlatformDispatchAsyncRenderer([videoTexture_w] {
+        std::shared_ptr<VROVideoTexture> videoTexture = videoTexture_w.lock();
+        if (!videoTexture) {
+            return;
+        }
+        videoTexture->pause();
+    });
     VRO_REF_DELETE(VROVideoTexture, textureRef);
 }
 
