@@ -27,43 +27,16 @@
 #include "VROTime.h"
 #include "VROPortal.h"
 
-static bool sSceneBackgroundAdd = true;
 static bool sHasHoverEvents = true;
-
 VROInputControllerBase::VROInputControllerBase(std::shared_ptr<VRODriver> driver) :
     _driver(driver) {
     _scene = nullptr;
 }
 
-/**
- * OnButtonEvents are triggered on both controller-level and node-level event delegates whenever
- * button-specific events has been triggered on the underlying hardware (corresponding
- * VROInputController).
- *
- * For the case of ClickDown and ClickUp events, delegates are triggered with a unique deviceId
- * and sourceId. For the case of Clicked Events, delegates are only triggered iff the last ClickDown
- * input event matches the last ClickUp input event in terms of deviceId and sourceId. Note that
- * these are always triggered after a clickdown-clickup as a separate event.
- *
- * NOTE: It is important to know the slight difference into how delegates are triggered.
- *
- * Controller-Level Event Delegate: When triggered, contains ButtonEvents of ALL deviceIDs at
- * that point in time. This is to provide developers a single point from which to base business
- * logic that may be dependent on multiple inputs at multiple times.
- *
- * Node-Level Event Delegates: When triggered, contains the ButtonEvents coming from
- * the controller (with a unique device Id) that has focused on the node. Thus, ClickDown,
- * ClickUp, Clicked events were done intentionally for that node, from a given controller.
- */
 void VROInputControllerBase::onButtonEvent(std::vector<VROEventDelegate::ButtonEvent> &events) {
     std::map<int, std::vector<VROEventDelegate::ButtonEvent>> eventsByControllerId;
     std::map<int, VROEventDelegate::ButtonEvent> clickedEvents;
     std::vector<VROEventDelegate::ButtonEvent> clickedEventsAll;
-
-    // For each button event:
-    // - populate it with the cached hit point done for this controller id
-    // - if it's a clickDown event, update lastTrackedButtonEvent (used for determining clicked)
-    // - if it's a clickUp event, compare with lastTrackedButtonEvent
     for (VROEventDelegate::ButtonEvent &event : events) {
         // If no required hit result is found, we can't trigger button events.
         if (_deviceControllerState.find(event.deviceId) == _deviceControllerState.end()) {
@@ -147,11 +120,9 @@ void VROInputControllerBase::onButtonEvent(std::vector<VROEventDelegate::ButtonE
     }
 }
 
-void VROInputControllerBase::onMove(std::vector<VROEventDelegate::MoveEvent> &events, bool shouldUpdatehitTests) {
-    shouldUpdatehitTests = shouldUpdatehitTests || sHasHoverEvents;
-
+void VROInputControllerBase::onMove(std::vector<VROEventDelegate::MoveEvent> &events) {
     // Update all device input's transforms.
-    if (shouldUpdatehitTests && _scene != nullptr) {
+    if (_scene != nullptr) {
         for (VROEventDelegate::MoveEvent event : events) {
             VROVector3f origin = event.pos;
             VROVector3f controllerForward = event.rot.getMatrix().multiply(kBaseForward);
@@ -169,9 +140,6 @@ void VROInputControllerBase::onMove(std::vector<VROEventDelegate::MoveEvent> &ev
     onHover(events);
 }
 
-/**
- * Hovered Events are only tracked per device Id.
- */
 void VROInputControllerBase::onHover(std::vector<VROEventDelegate::MoveEvent> &events) {
     if (!sHasHoverEvents) {
         return;
@@ -217,14 +185,16 @@ void VROInputControllerBase::onHover(std::vector<VROEventDelegate::MoveEvent> &e
 
         // Also notify the last hovered node that we have hovered 'off'.
         std::shared_ptr<VRONode> lastTrackedOnHoveredNode = _deviceControllerState[event.deviceId].lastTrackedOnHoveredNode;
+        std::shared_ptr<VRONode> lastTrackedOnHoverEventNode = _deviceControllerState[event.deviceId].lastTrackedOnHoverEventNode;
         if (lastTrackedOnHoveredNode != onHoveredNode && lastTrackedOnHoveredNode != nullptr) {
             event.isHovering = false;
             std::vector<VROEventDelegate::HoverEvent> events2 = {event};
-            if (lastTrackedOnHoveredNode->getEventDelegate() != nullptr) {
-                lastTrackedOnHoveredNode->getEventDelegate()->onHover(events2);
+            if (lastTrackedOnHoverEventNode != nullptr && lastTrackedOnHoverEventNode->getEventDelegate() != nullptr) {
+                lastTrackedOnHoverEventNode->getEventDelegate()->onHover(events2);
             }
         }
-        _deviceControllerState[event.deviceId].lastTrackedOnHoveredNode = onHoverEventNode;
+        _deviceControllerState[event.deviceId].lastTrackedOnHoveredNode = onHoveredNode;
+        _deviceControllerState[event.deviceId].lastTrackedOnHoverEventNode = onHoverEventNode;
     }
 }
 

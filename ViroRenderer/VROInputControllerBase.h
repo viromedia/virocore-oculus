@@ -49,6 +49,15 @@
  For example, VROInputControllerDaydream maps the onTouchPadClick event onto
  a Viro onPrimaryClick event type within VROInputControllerBase, of which then notifies all
  VROEventDelegates about such an event.
+
+ NOTE: There is a slight difference into how delegates are triggered.
+ 1) Controller-Level Event Delegate: When triggered, contains the event of ALL deviceIDs sources at
+ that point in time. This is to provide developers a single snapshot point of events, where the
+ events are triggered on the Controller itself via internal delegates.
+
+ 2) Node-Level Event Delegates: When triggered, contains the events pertaining to the node
+ that can handle the event via getNodeToHandleEvent(). This is applied for Click and Hover events
+ only, where for example, click events are triggered on the Node.
  */
 class VROInputControllerBase {
 public:
@@ -115,7 +124,7 @@ protected:
     }
 
     void onButtonEvent(std::vector<VROEventDelegate::ButtonEvent> &events);
-    void onMove(std::vector<VROEventDelegate::MoveEvent> &events, bool shouldUpdateHitTests);
+    void onMove(std::vector<VROEventDelegate::MoveEvent> &events);
     void onHover(std::vector<VROEventDelegate::MoveEvent> &events);
 
     /*
@@ -154,13 +163,13 @@ protected:
          */
         std::shared_ptr<VROHitTestResult> hitResult;
 
-
         /*
          Tracked Events for state
          */
         std::shared_ptr<VROEventDelegate::ButtonEvent> lastTrackedButtonEvent;
         std::shared_ptr<VROEventDelegate::HoverEvent> lastTrackedHoverEvent;
         std::shared_ptr<VRONode> lastTrackedOnHoveredNode;
+        std::shared_ptr<VRONode> lastTrackedOnHoverEventNode;
 
     } TouchControllerLeft, TouchControllerRight;
 

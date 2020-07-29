@@ -627,16 +627,16 @@ void VRONode::applyConstraints(const VRORenderContext &context, VROMatrix4f pare
         updated = true;
     }
 
-    /*
+/*
         std::shared_ptr<VROPencil>  p = context.getPencil();
-        VROVector3f s = VROVector3f(_worldUmbrellaBoundingBox.getMinX(), _worldUmbrellaBoundingBox.getMinY(), _worldUmbrellaBoundingBox.getMinZ());
-        VROVector3f l = VROVector3f(_worldUmbrellaBoundingBox.getMaxX(), _worldUmbrellaBoundingBox.getMaxY(), _worldUmbrellaBoundingBox.getMaxZ());
+        VROVector3f s = VROVector3f(_worldBoundingBox.getMinX(), _worldBoundingBox.getMinY(), _worldBoundingBox.getMinZ());
+        VROVector3f l = VROVector3f(_worldBoundingBox.getMaxX(), _worldBoundingBox.getMaxY(), _worldBoundingBox.getMaxZ());
         p->draw({s.x, s.y, s.z}, {l.x, s.y, s.z});
         p->draw({l.x, s.y, s.z}, {l.x, l.y, s.z});
         p->draw({l.x, l.y, s.z}, {s.x, l.y, s.z});
         p->draw({s.x, l.y, s.z}, {s.x, s.y, s.z});
-    */
 
+*/
     /*
      Move down the tree.
      */
