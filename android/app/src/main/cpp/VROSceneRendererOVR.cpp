@@ -788,8 +788,11 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
     float fovY = vrapi_GetSystemPropertyFloat( java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y );
     VROFieldOfView fov(fovX / 2.0, fovX / 2.0, fovY / 2.0, fovY / 2.0);
     VROMatrix4f projection = fov.toPerspectiveProjection(kZNear, renderer->getFarClippingPlane());
-    VROVector3f headPosition = toMatrix4f(updatedTracking.Eye[0].ViewMatrix).invert().extractTranslation();
-    renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, headPosition, projection,
+    VROVector3f headPos1 = VROVector3f(updatedTracking.HeadPose.Pose.Position.x,
+                                      updatedTracking.HeadPose.Pose.Position.y,
+                                      updatedTracking.HeadPose.Pose.Position.z);
+
+    renderer->prepareFrame(frameIndex, leftViewport, fov, headRotation, headPos1, projection,
                            driver);
 
     // Finally report the state
@@ -845,9 +848,13 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
         VROEyeType eyeType = (eye == VRAPI_FRAME_LAYER_EYE_LEFT) ? VROEyeType::Left : VROEyeType::Right;
         VROViewport viewport = { 0, 0, frameBuffer->Width, frameBuffer->Height };
 
+        // Ensure we take into account any camera offset transform.
+        VROMatrix4f ovrEyeView = toMatrix4f(updatedTracking.Eye[eye].ViewMatrix).invert();
+        VROMatrix4f finalEyeView = VROMatrix4f();
+        finalEyeView = renderer->getCamera().getBaseTransform() * ovrEyeView;
+
         // Recalculate the view matrix with the eye offsets.
-        VROMatrix4f ovrEyeView = toMatrix4f(updatedTracking.Eye[eye].ViewMatrix);
-        VROVector3f finalPos = ovrEyeView.invert().extractTranslation() + renderer->getCamera().getBasePosition();
+        VROVector3f finalPos = finalEyeView.extractTranslation();
         VROVector3f forward = renderer->getCamera().getRotation().getMatrix().multiply(kBaseForward);
         VROVector3f up = renderer->getCamera().getRotation().getMatrix().multiply(kBaseUp);
         VROMatrix4f viroHeadView = VROMathComputeLookAtMatrix(finalPos, forward, up);
@@ -858,9 +865,6 @@ static void ovrRenderer_RenderFrame(ovrRenderer* rendererOVR,
                             viroHeadView,
                             toMatrix4f(updatedTracking.Eye[eye].ProjectionMatrix),
                             viewport, driver);
-
-       // pwarn("Marcus Eye: %d, index: %d, length %d",
-        //      eye, frameBuffer->TextureSwapChainIndex, frameBuffer->TextureSwapChainLength);
 
         // Explicitly clear the border texels to black when GL_CLAMP_TO_BORDER is not available.
         ovrRenderer_clearBorder(frameBuffer);

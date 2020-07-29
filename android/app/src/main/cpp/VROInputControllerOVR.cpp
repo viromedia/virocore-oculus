@@ -120,7 +120,15 @@ void VROInputControllerOVR::processInput(std::vector<ControllerSnapShot> snapSho
 
     // Reprocess event positional data with the updated camera.
     for (ControllerSnapShot &snapShot : snapShots) {
-        snapShot.position = snapShot.position + camera.getBasePosition();
+        VROMatrix4f camMat = camera.getBaseTransform();
+
+        VROMatrix4f snapShotMat;
+        snapShotMat.rotate(snapShot.rotation);
+        snapShotMat.translate(snapShot.position);
+
+        snapShotMat = camMat * snapShotMat;
+        snapShot.position = snapShotMat.extractTranslation();
+        snapShot.rotation = snapShotMat.extractRotation(snapShotMat.extractScale());
     }
 
     for (ControllerSnapShot snapShot : snapShots) {
