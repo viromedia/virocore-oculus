@@ -44,7 +44,7 @@ class VROReticle {
 
 public:
 
-    VROReticle(std::shared_ptr<VROTexture> icon, bool hudBased = true);
+    VROReticle(std::shared_ptr<VROTexture> icon);
     virtual ~VROReticle();
 
     void trigger();
@@ -59,6 +59,17 @@ public:
         return _hudBased;
     }
 
+    void setIsHudBased(bool flag) {
+        _hudBased = flag;
+    }
+
+    float getLastKnownDistance() {
+        return _lastKnownReticleDistance;
+    }
+
+    void setLastKnownDistance(float d) {
+        _lastKnownReticleDistance = d;
+    }
     /*
      If pointer is fixed, the reticle will be locked at the center of each eye. This is used for
      VR devices that lack a pointing controller (e.g. Cardboard).
@@ -84,6 +95,7 @@ private:
     float _thickness;
     float _endThickness;
     float _fuseScale;
+    float _lastKnownReticleDistance = 16;
 
     /*
      Cached x y points describing a circle with kCircleSegments, used

@@ -79,6 +79,39 @@ VRO_METHOD(void, nativeEnableReticle)(VRO_ARGS
     });
 }
 
+VRO_METHOD(void, nativeEnableReticleStickyDepth)(VRO_ARGS
+                                              VRO_REF(ViroContext) render_context_ref,
+                                              VRO_BOOL enable) {
+    std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, render_context_ref);
+
+    VROPlatformDispatchAsyncRenderer([nativeContext_w, enable] {
+        std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
+        if (!nativeContext) {
+            return;
+        }
+
+        std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
+        controllerPresenter->setStickyReticleDepth(enable);
+    });
+}
+
+VRO_METHOD(void, nativeEnableForcedRender)(VRO_ARGS
+                                                 VRO_REF(ViroContext) render_context_ref,
+                                                 VRO_BOOL enable) {
+    std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, render_context_ref);
+
+    VROPlatformDispatchAsyncRenderer([nativeContext_w, enable] {
+        std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
+        if (!nativeContext) {
+            return;
+        }
+
+        std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
+        controllerPresenter->setForcedRender(enable);
+    });
+}
+
+
 VRO_METHOD(void, nativeEnableController)(VRO_ARGS
                                          VRO_REF(ViroContext) render_context_ref,
                                          VRO_BOOL enable) {
@@ -131,7 +164,6 @@ VRO_METHOD(void, nativeSetLightReceivingBitMask)(VRO_ARGS
                                                  VRO_INT bitMask) {
 
     std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, context_j);
-
     VROPlatformDispatchAsyncRenderer([nativeContext_w, bitMask] {
         std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
         if (!nativeContext) {
@@ -145,6 +177,49 @@ VRO_METHOD(void, nativeSetLightReceivingBitMask)(VRO_ARGS
         }
 
         ovrPresenter->setLightReceivingBitMask(bitMask);
+    });
+}
+
+
+VRO_METHOD(void, nativeAttachChildNode)(VRO_ARGS
+                                     VRO_REF(ViroContext) context_j,
+                                     VRO_BOOL isRight,
+                                     VRO_REF(VRONode) child_node_ref) {
+    std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, context_j);
+    std::shared_ptr<VRONode> childNode = VRO_REF_GET(VRONode, child_node_ref);
+    VROPlatformDispatchAsyncRenderer([nativeContext_w, childNode, isRight] {
+        std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
+        if (!nativeContext) {
+            return;
+        }
+
+        std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
+        std::shared_ptr<VROInputPresenterOVR> ovrPresenter = std::dynamic_pointer_cast<VROInputPresenterOVR>(controllerPresenter);
+        if (ovrPresenter == nullptr) {
+            return;
+        }
+
+        ovrPresenter->attachControllerChild(childNode, isRight);
+    });
+}
+
+VRO_METHOD(void, nativeDetatchChildNode)(VRO_ARGS
+                                            VRO_BOOL isRight,
+                                            VRO_REF(ViroContext) context_j) {
+    std::weak_ptr<ViroContext> nativeContext_w = VRO_REF_GET(ViroContext, context_j);
+    VROPlatformDispatchAsyncRenderer([nativeContext_w, isRight] {
+        std::shared_ptr<ViroContext> nativeContext = nativeContext_w.lock();
+        if (!nativeContext) {
+            return;
+        }
+
+        std::shared_ptr<VROInputPresenter> controllerPresenter = nativeContext->getInputController()->getPresenter();
+        std::shared_ptr<VROInputPresenterOVR> ovrPresenter = std::dynamic_pointer_cast<VROInputPresenterOVR>(controllerPresenter);
+        if (ovrPresenter == nullptr) {
+            return;
+        }
+
+        ovrPresenter->detatchControllerChild(isRight);
     });
 }
 /**

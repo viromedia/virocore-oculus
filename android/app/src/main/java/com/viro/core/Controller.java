@@ -54,6 +54,8 @@ import java.util.ArrayList;
  */
 public class Controller implements EventDelegate.EventDelegateCallback {
 
+    private Node mRightChildNode = null;
+    private Node mLeftChildNode = null;
     private ViroContext mViroContext;
     private boolean mReticleVisible = true;
     private boolean mControllerVisible = true;
@@ -112,6 +114,27 @@ public class Controller implements EventDelegate.EventDelegateCallback {
     public void setReticleVisible(boolean visible) {
         mReticleVisible = visible;
         nativeEnableReticle(mViroContext.mNativeRef, visible);
+    }
+
+    /**
+     * If true, the reticle will retain the depth position of the last hovered object when
+     * hovering on the background.
+     * <p>
+     * Defaults to true.
+     */
+    public void setReticleStickyDepth(boolean sticky) {
+        nativeEnableReticleStickyDepth(mViroContext.mNativeRef, sticky);
+    }
+
+    /**
+     * If true, a re-render is performed on the controller at the end of the render pass.
+     * This is to mitigate the issue of culling out the controller due to complicated
+     * stenciling of multi-portal rendering.
+     * <p>
+     * Defaults to false.
+     */
+    public void setForcedRender(boolean forced) {
+        nativeEnableForcedRender(mViroContext.mNativeRef, forced);
     }
 
     /**
@@ -279,8 +302,45 @@ public class Controller implements EventDelegate.EventDelegateCallback {
         // TODO: No-op, Not implemented for Viro-core
     }
 
+    /**
+     * Add a child Node to this Node. The child will exist in the coordinate space of this Node
+     * (that is, it inherits the rotation, scale, and position of the controller, and applies its own
+     * rotation, scale, and position).
+     *
+     * @param childNode The Node to add as a child.
+     */
+    public void attachChildNode(Node childNode, boolean isRight) {
+        if (isRight) {
+            mRightChildNode = childNode;
+        } else {
+            mLeftChildNode = childNode;
+        }
+        nativeAttachChildNode(mViroContext.mNativeRef, isRight, childNode.mNativeRef);
+    }
+
+    /**
+     * Removes the attached child node from the controller if any.
+     */
+    public void detatchChildNode(Node childNode, boolean isRight) {
+        if ((isRight && mRightChildNode == null) ||
+                (!isRight && mLeftChildNode == null)){
+            return;
+        }
+
+        if (isRight) {
+            mRightChildNode = null;
+        } else {
+            mLeftChildNode = null;
+        }
+        nativeDetatchChildNode(mViroContext.mNativeRef, isRight);
+    }
+
+    private native void nativeAttachChildNode(long contextRef, boolean isRight, long childNodeReference);
+    private native void nativeDetatchChildNode(long contextRef, boolean isRight);
     private native void nativeSetEventDelegate(long contextRef, long delegateRef);
     private native void nativeEnableReticle(long contextRef, boolean enabled);
+    private native void nativeEnableReticleStickyDepth(long contextRef, boolean enabled);
+    private native void nativeEnableForcedRender(long contextRef, boolean enabled);
     private native void nativeEnableController(long contextRef, boolean enabled);
     private native float[] nativeGetControllerForwardVector(long contextRef);
     private native void nativeGetControllerForwardVectorAsync(long renderContextRef, ControllerJniCallback callback);

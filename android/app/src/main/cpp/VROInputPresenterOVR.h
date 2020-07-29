@@ -43,6 +43,7 @@
 
 const std::string kTouchLeftModel = "file:///android_asset/touch_controller_left.vrx";
 const std::string kTouchRightModel = "file:///android_asset/touch_controller_right.vrx";
+const float kTiltedDayDreamOffset = 0.24002f;
 
 class VROInputPresenterOVR : public VROInputPresenter {
 public:
@@ -51,12 +52,15 @@ public:
                 = std::make_shared<VROTexture>(true,
                                                VROMipmapMode::Runtime,
                                                VROPlatformLoadImageFromAsset("dd_reticle_large.png", VROTextureInternalFormat::RGBA8));
-        std::shared_ptr<VROReticle> LeftReticle = std::make_shared<VROReticle>(reticleTexture, false);
-        LeftReticle->setPointerFixed(false);
-        addReticle(ViroOculusInputEvent::ControllerLeftId, LeftReticle);
 
-        std::shared_ptr<VROReticle> rightReticle = std::make_shared<VROReticle>(reticleTexture, false);
+        std::shared_ptr<VROReticle> leftReticle = std::make_shared<VROReticle>(reticleTexture);
+        leftReticle->setPointerFixed(false);
+        leftReticle->setIsHudBased(false);
+        addReticle(ViroOculusInputEvent::ControllerLeftId, leftReticle);
+
+        std::shared_ptr<VROReticle> rightReticle = std::make_shared<VROReticle>(reticleTexture);
         rightReticle->setPointerFixed(false);
+        rightReticle->setIsHudBased(false);
         addReticle(ViroOculusInputEvent::ControllerRightId, rightReticle);
 
         _laserTexture = std::make_shared<VROTexture>(true,
@@ -64,6 +68,10 @@ public:
 
         _LeftControllerBaseNode = std::make_shared<VRONode>();
         _rightControllerBaseNode = std::make_shared<VRONode>();
+        _rightControllerBaseNodeAttachment = std::make_shared<VRONode>();
+        _LeftControllerBaseNodeAttachment = std::make_shared<VRONode>();
+        _LeftControllerBaseNode->addChildNode(_LeftControllerBaseNodeAttachment);
+        _rightControllerBaseNode->addChildNode(_rightControllerBaseNodeAttachment);
         getRootNode()->addChildNode(_LeftControllerBaseNode);
         getRootNode()->addChildNode(_rightControllerBaseNode);
         initControllerModel(_LeftControllerBaseNode, driver, kTouchLeftModel);
@@ -85,8 +93,6 @@ public:
         VROInputPresenter::onMove(events);
     }
 
-    // Can represent Events from different DeviceIDs, not sources
-    // Can be triggered on Nodes.
     virtual void onHover(std::vector<HoverEvent> &events) {
         for (VROEventDelegate::HoverEvent event : events) {
             if (event.deviceId == ViroOculusInputEvent::ControllerLeftId) {
@@ -100,8 +106,43 @@ public:
     }
 
     void setLightReceivingBitMask(int bitMask) {
-        _rightControllerBaseNode->setLightReceivingBitMask(bitMask, true);
-        _LeftControllerBaseNode->setLightReceivingBitMask(bitMask, true);
+        if (bitMask == -1) {
+            // User wants to restore lights. Add them back if we haven't yet done so.
+            if (_rightControllerBaseNode->getLights().size() == 0) {
+                setLightForNode(_rightControllerBaseNode);
+            }
+            if (_LeftControllerBaseNode->getLights().size() == 0) {
+                setLightForNode(_LeftControllerBaseNode);
+            }
+        } else {
+            _rightControllerBaseNode->removeAllLights();
+            _LeftControllerBaseNode->removeAllLights();
+            _rightControllerBaseNode->setLightReceivingBitMask(bitMask, true);
+            _LeftControllerBaseNode->setLightReceivingBitMask(bitMask, true);
+        }
+    }
+
+    void setLightForNode(std::shared_ptr<VRONode> node) {
+        std::shared_ptr<VROLight> ambientLight = std::make_shared<VROLight>(VROLightType::Ambient);
+        ambientLight->setIntensity(3500);
+        node->addLight(ambientLight);
+        ambientLight->setInfluenceBitMask(1000);
+    }
+
+    void attachControllerChild(std::shared_ptr<VRONode> node, bool isRight) {
+        if (isRight) {
+            _rightControllerBaseNodeAttachment->addChildNode(node);
+        } else {
+            _LeftControllerBaseNodeAttachment->addChildNode(node);
+        }
+    }
+
+    void detatchControllerChild(bool isRight) {
+        if (isRight) {
+            _rightControllerBaseNodeAttachment->removeAllChildren();
+        } else {
+            _LeftControllerBaseNodeAttachment->removeAllChildren();
+        }
     }
 
 private:
@@ -109,8 +150,12 @@ private:
     std::shared_ptr<VRONode> _pointerNode;
     std::shared_ptr<VRONode> _rightControllerBaseNode;
     std::shared_ptr<VRONode> _LeftControllerBaseNode;
+    std::shared_ptr<VRONode> _rightControllerBaseNodeAttachment;
+    std::shared_ptr<VRONode> _LeftControllerBaseNodeAttachment;
 
     void initControllerModel(std::shared_ptr<VRONode> node, std::shared_ptr<VRODriver> driver, std::string modelSource) {
+        setLightForNode(node);
+
         // Create our controller model
         std::shared_ptr<VRONode> controllerNod2 = std::make_shared<VRONode>();
         controllerNod2->setScale({0.015, 0.015, 0.015});
@@ -120,13 +165,12 @@ private:
                 perr("ERROR when loading controller models!");
                 return;
             }
-
+            basenode->setLightReceivingBitMask(1000, true);
             basenode->computeTransforms(node->getWorldTransform(), node->getRotation().getMatrix());
         });
         node->addChildNode(controllerNod2);
 
         // Create our laser obj
-
         std::string controllerObjAsset = VROPlatformCopyAssetToFile("ddlaser.obj");
         _pointerNode = std::make_shared<VRONode>();
         _pointerNode->setScale({0.1, 0.1, 0.1});
@@ -144,7 +188,7 @@ private:
 
         // We'll need to rotate the line upwords (Since we are using a tilted daydream pointer cone)
         VROQuaternion offsetRot = _pointerNode->getRotation();
-        offsetRot = offsetRot.fromAngleAxis(0.24002, VROVector3f(1, 0,0));
+        offsetRot = offsetRot.fromAngleAxis(kTiltedDayDreamOffset, VROVector3f(1, 0,0));
         _pointerNode->setPosition(controllerNod2->getPosition());
         _pointerNode->setRotation(offsetRot);
         _pointerNode->setOpacity(1.0);

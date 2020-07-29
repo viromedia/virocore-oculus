@@ -87,6 +87,11 @@ void VROPortalTreeRenderPass::render(std::shared_ptr<VROScene> scene,
 
     // Render the pencil
     context->getPencil()->render(*context, driver);
+
+    // Force renderer the controller if specified.
+    if (scene->getControllerPresenter()->getForcedRender()) {
+        scene->getControllerPresenter()->getRootNode()->render(*context, driver);
+    }
 }
 
 // The key to this algorithm is we render depth-first. That is, we funnel down
