@@ -61,6 +61,13 @@ public:
     void setFOV(VROFieldOfView fov);
     void setProjection(VROMatrix4f projection);
 
+    VROMatrix4f getBaseTransform() const {
+        VROMatrix4f camTrans;
+        camTrans.rotate(_baseRotation);
+        camTrans.translate(_basePosition);
+        return camTrans;
+    }
+
     VROVector3f getBasePosition() const {
         return _basePosition;
     }
@@ -72,6 +79,10 @@ public:
     }
     VROVector3f getUp() const {
         return _up;
+    }
+
+    VROMatrix4f getBaseRotation() const {
+        return _baseRotation;
     }
     VROQuaternion getRotation() const {
         return _rotation;
