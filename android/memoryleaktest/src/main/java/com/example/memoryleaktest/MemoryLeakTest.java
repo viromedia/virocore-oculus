@@ -515,7 +515,7 @@ public class MemoryLeakTest extends AppCompatActivity {
     }
 
     private List<Node> testAudio() {
-        SpatialSound sound = new SpatialSound(mViroView.getViroContext(), Uri.parse("file:///android_asset/flies_mono.wav"), null);
+       /* SpatialSound sound = new SpatialSound(mViroView.getViroContext(), Uri.parse("file:///android_asset/flies_mono.wav"), null);
         sound.setPosition(new Vector(-1, 0, 0));
         sound.setVolume(1.0f);
         sound.setDistanceRolloff(SpatialSound.Rolloff.LINEAR, 3, 5);
@@ -530,10 +530,10 @@ public class MemoryLeakTest extends AppCompatActivity {
             @Override
             public void onSoundFail(final String error) {
             }
-        });
+        });*/
 
         Node soundNode = new Node();
-        soundNode.addSound(sound);
+        //soundNode.addSound(sound);
         return  Arrays.asList(soundNode);
     }
 

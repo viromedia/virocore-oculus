@@ -83,8 +83,6 @@ import com.viro.core.Polyline;
 import com.viro.core.Scene;
 import com.viro.core.Sound;
 import com.viro.core.SoundData;
-import com.viro.core.SoundField;
-import com.viro.core.SpatialSound;
 import com.viro.core.Sphere;
 import com.viro.core.Spotlight;
 import com.viro.core.Surface;
@@ -119,8 +117,6 @@ public class ViroActivity extends AppCompatActivity {
     private static final String TAG = ViroActivity.class.getSimpleName();
     private static int SOUND_COUNT = 0;
     private final Map<String, Sound> mSoundMap = new HashMap<>();
-    private final Map<String, SoundField> mSoundFieldMap = new HashMap();
-    private final Map<String, SpatialSound> mSpatialSoundMap = new HashMap<>();
     private ARDeclarativeNode.Delegate mARNodeDelegate;
     private ViroView mViroView = null;
     private Handler mHandler;
@@ -135,7 +131,6 @@ public class ViroActivity extends AppCompatActivity {
         config.setBloomEnabled(true);
         config.setHDREnabled(true);
         config.setPBREnabled(true);
-        Log.e("Daniel"," Load OVR");
         mViroView = new ViroViewOVR(this, new ViroViewOVR.StartupListener() {
             @Override
             public void onSuccess() {
@@ -203,8 +198,6 @@ public class ViroActivity extends AppCompatActivity {
     }
 
     private void onRendererStart() {
-        Log.e("Daniel", "1 called");
-
         mViroView.setVRModeEnabled(true);
         mViroView.setDebugHUDEnabled(true);
         initializeVrScene();
@@ -219,14 +212,18 @@ public class ViroActivity extends AppCompatActivity {
     }
 
     private void initializeVrScene() {
-        Log.e("Daniel", "initializeVrScene");
-
         // Creation of SceneControllerJni within scene navigator
         final Scene scene = new Scene();
         //scene.setBackgroundCubeWithColor(Color.WHITE);
         final Node rootNode = scene.getRootNode();
         List<Node> nodes = new ArrayList<>();
         nodes = testBox(getApplicationContext());
+
+        final Bitmap background = getBitmapFromAssets("360_westlake.jpg");
+        final Texture backgroundTexture = new Texture(background, Texture.Format.RGBA8, true, true);
+        scene.setBackgroundTexture(backgroundTexture);
+
+
         //testBackgroundVideo(scene);
 
         //nodes.add(testLine(this));
@@ -259,16 +256,24 @@ public class ViroActivity extends AppCompatActivity {
         // Updating the scene.
         mViroView.setScene(scene);
         final Controller nativeController = mViroView.getController();
-        nativeController.setEventDelegate(getGenericDelegate("Controller"));
-        //nativeController.setReticleVisibility(false);
-
+        nativeController.setReticleStickyDepth(true);
         mViroView.setCameraListener(new CameraListener() {
             @Override
             public void onTransformUpdate(Vector position, Vector r, Vector forward, Vector up) {
                 Vector l = new Vector(Math.toDegrees(r.x), Math.toDegrees(r.y),Math.toDegrees(r.z));
-                Log.e("Daniel","Cam : " + position + " , " + l + " , " + forward + " , " +up);
             }
         });
+
+
+        for (int i = 0; i < 20; i ++) {
+            VideoTexture mVideoTexture = new VideoTexture(mViroView.getViroContext(),
+                    Uri.parse("file:///android_asset/stereoVid360.mp4"), null, Texture.StereoMode.TOP_BOTTOM);
+            mVideoTexture.setVolume(1);
+            mVideoTexture.setMuted(false);
+            mVideoTexture.setLoop(true);
+            mVideoTexture.play();
+            mVideoTexture.dispose();
+        }
     }
 
     /*
@@ -643,9 +648,10 @@ public class ViroActivity extends AppCompatActivity {
     private List<Node> testBox(final Context context) {
         final Node pointOfView = new Node();
         final Camera camera = new Camera();
-       // camera.setPosition(new Vector(0, -0.5f, 10.5f));
-        pointOfView.setCamera(camera);
-        pointOfView.setPosition(new Vector(0, 0, 0));
+        camera.setPosition(new Vector(0, 0, 2f));
+       // pointOfView.setCamera(camera);
+        pointOfView.setPosition(new Vector(0, 0, 2));
+        pointOfView.setRotation(new Vector(0, Math.toRadians(90), 0));
         mViroView.setPointOfView(pointOfView);
 
 
@@ -663,7 +669,10 @@ public class ViroActivity extends AppCompatActivity {
         final float[] position = {0, -0.5f, -0.5f};
         node3.setPosition(new Vector(position));
         node3.setGeometry(textJni);
-        node3.setEventDelegate(getGenericDelegate("Text"));
+
+        Node n = new Node();
+        n.addChildNode(node3);
+        n.setEventDelegate(getGenericDelegate("Text"));
 
         final Bitmap bobaBitmap = getBitmapFromAssets("boba.png");
         final Bitmap specBitmap = getBitmapFromAssets("specular.png");
@@ -748,7 +757,7 @@ public class ViroActivity extends AppCompatActivity {
             }
         }, 1000);
 
-        return Arrays.asList(pointOfView, node1, node2, node3, node4, node5, node6);
+        return Arrays.asList(pointOfView, node1, node2, node4, node5, node6, n);
     }
 
     private List<Node> test3dObjectLoading(final Context context) {
@@ -1330,108 +1339,6 @@ public class ViroActivity extends AppCompatActivity {
         }));
     }
 
-    private void addSoundField(final String path) {
-        final String key = path + SOUND_COUNT++;
-        mSoundFieldMap.put(key, new SoundField(
-                mViroView.getViroContext(), Uri.parse(path), new SoundField.PlaybackListener() {
-            @Override
-            public void onSoundReady(final SoundField sound) {
-                Log.i("SoundField", "ViroActivity sound is ready!");
-                sound.play();
-                sound.setLoop(true);
-            }
-
-            @Override
-            public void onSoundFail(final String error) {
-                Log.i("SoundField", "Failed to load sound: " + error);
-            }
-        }));
-
-        final float[] rotation = {0, 0, (float) Math.PI / 2};
-        mSoundFieldMap.get(key).setRotation(new Vector(rotation));
-    }
-
-    private void addSpatialSound(final String path) {
-        final String key = path + SOUND_COUNT++;
-        mSpatialSoundMap.put(key, new SpatialSound(mViroView.getViroContext(), Uri.parse(path), new SpatialSound.PlaybackListener() {
-            @Override
-            public void onSoundReady(final SpatialSound sound) {
-                Log.i("SpatialSound", "ViroActivity sound is ready!");
-
-                final float[] position = {5, 0, 0};
-                sound.setPosition(new Vector(position));
-                sound.play();
-            }
-
-            @Override
-            public void onSoundFail(final String error) {
-
-            }
-        }));
-    }
-
-    private void addSpatialSound(final SoundData data) {
-        final String key = "" + SOUND_COUNT++;
-        mSpatialSoundMap.put(key, new SpatialSound(data,
-                mViroView.getViroContext(), new SpatialSound.PlaybackListener() {
-            @Override
-            public void onSoundReady(final SpatialSound sound) {
-                final float[] position = {5, 0, 0};
-                sound.setPosition(new Vector(position));
-                sound.play();
-            }
-
-            @Override
-            public void onSoundFail(final String error) {
-
-            }
-        }));
-    }
-
-    private void setSoundRoom(final Scene scene, final ViroContext viroContextJni) {
-        final float[] size = {15, 15, 15};
-        scene.setSoundRoom(viroContextJni, new Vector(size), Scene.AudioMaterial.BRICK_BARE, Scene.AudioMaterial.MARBLE,
-                Scene.AudioMaterial.BRICK_BARE);
-    }
-
-    private Node testLine(final Context scene) {
-        final Material material = new Material();
-        material.setDiffuseColor(Color.RED);
-        material.setLightingModel(Material.LightingModel.CONSTANT);
-        material.setCullMode(Material.CullMode.NONE);
-
-        final float[] linePos = {0, 0, -2};
-        final float[][] points = {{0, 0, 0}, {1, 0, 0}, {1, 1, 0}};
-
-        final Polyline polyline = new Polyline(points, 0.1f);
-        final Node node1 = new Node();
-
-        node1.setPosition(new Vector(linePos));
-        node1.setGeometry(polyline);
-        polyline.setMaterials(Arrays.asList(material));
-        node1.setEventDelegate(getGenericDelegate("Line"));
-
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                polyline.appendPoint(new Vector(-1, 1, 0));
-            }
-        }, 2000);
-
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                final List<Vector> newPoints = new ArrayList<>();
-                newPoints.add(new Vector(0, 0, 0));
-                newPoints.add(new Vector(1, 1, 0));
-
-                polyline.setPoints(newPoints);
-            }
-        }, 4000);
-
-        return node1;
-    }
-
     private void testVideoRecording() {
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -1539,11 +1446,11 @@ public class ViroActivity extends AppCompatActivity {
 
     private EventDelegate getGenericDelegate(final String delegateTag){
         final EventDelegate delegateJni = new EventDelegate();
-        //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, false);
+        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_HOVER, true);
         //delegateJni.setEventEnabled(EventDelegate.EventAction.ON_TRIGGER, false);
        // delegateJni.setEventEnabled(EventDelegate.EventAction.ON_THUMBSTICK, false);
         delegateJni.setEventEnabled(EventDelegate.EventAction.ON_CLICK, true);
-        delegateJni.setEventEnabled(EventDelegate.EventAction.ON_MOVE, true);
+       // delegateJni.setEventEnabled(EventDelegate.EventAction.ON_MOVE, true);
         lol = new GenericEventCallback(delegateTag);
         delegateJni.setEventDelegateCallback(lol);
 
@@ -1573,64 +1480,40 @@ public GenericEventCallback lol;
 
         @Override
         public void onClick(ArrayList<EventDelegate.ButtonEvent> events) {
-          //  Log.e("Daniel"," onClick Fired #######");
             for (EventDelegate.ButtonEvent event : events) {
-                Log.e("Daniel"," -> " + event.state);
+                Log.e("ViroActivity"," -> " + event.state);
             }
         }
 
         @Override
         public void onHover(ArrayList<EventDelegate.HoverEvent> events) {
             for (EventDelegate.HoverEvent event : events) {
-               Log.e("Daniel"," -> " + event.isHovering);
+               Log.e("ViroActivity","onHover -> " + event.isHovering);
             }
         }
 
         @Override
         public void onThumbStickEvent(ArrayList<EventDelegate.ThumbStickEvent> events) {
-          //  Log.e("Daniel"," ThumbStickEvent #######");
-            for (EventDelegate.ThumbStickEvent event : events) {
-                //Log.e("Daniel","ThumbStickEvent -> " + event.isPressed);
-             //   Log.e("Daniel","ThumbStickEvent -> " + event.axisLocation);
-            }
         }
 
         @Override
         public void onWeightedTriggerEvent(ArrayList<EventDelegate.TriggerEvent> events) {
-            for (EventDelegate.TriggerEvent event : events) {
-             //  Log.e("Daniel","TriggerEvent -> " + event.weight);
-            }
         }
 
         @Override
         public void onMove(ArrayList<EventDelegate.MoveEvent> events) {
-         //   Log.e("Daniel"," onMove #######");
-
-          //  for (EventDelegate.MoveEvent event : events) {
-            //    Log.e("Daniel","MoveEvent -> " + event.pos);
-          //  }
         }
 
         @Override
         public void onControllerStatus(ArrayList<EventDelegate.ControllerStatus> events) {
-            Log.e("Daniel"," onControllerStatus #######");
-
-            for (EventDelegate.ControllerStatus event : events) {
-                 Log.e("Daniel","device : " + event.deviceId + "onControllerStatus -> " + event.isConnected  + " , " +
-                         event.batteryPercentage + " , " + event.is6Dof);
-            }
         }
 
         @Override
         public void onHover(final int source, final Node node, final boolean isHovering, final float[] hitLoc) {
-            Log.e("Daniel"," Normal hover Event");
-          //  Log.e("Daniel", delegateTag + " JAVA  onHover " + isHovering);
         }
 
         @Override
         public void onClick(final int source, final Node node, final ClickState clickState, final float[] hitLoc) {
-         //   Log.e("Daniel", delegateTag + " JAVA onButtonEvent " + clickState.toString() + " location " +
-           //         hitLoc[0] + ", " + hitLoc[1] + ", " + hitLoc[2]);
         }
     }
 }

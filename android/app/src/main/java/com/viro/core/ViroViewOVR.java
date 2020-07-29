@@ -365,10 +365,6 @@ public class ViroViewOVR extends ViroView implements SurfaceHolder.Callback {
             return true;
         }
 
-        if (action == KeyEvent.ACTION_UP) {
-            Log.v("Daniel", "GLES3JNIActivity::dispatchKeyEvent( " + keyCode + ", " + action + " )");
-        }
-
         mNativeRenderer.onKeyEvent(keyCode, action);
         return true;
     }

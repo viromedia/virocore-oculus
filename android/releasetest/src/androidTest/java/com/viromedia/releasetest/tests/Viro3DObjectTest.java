@@ -169,7 +169,6 @@ public class Viro3DObjectTest extends ViroBaseTest {
 
                 boolean foundMorph = false;
                 for (String s : object.getMorphTargetKeys()){
-                    Log.e("Daniel"," Keys -> " + s);
                     if (s.equalsIgnoreCase("thin")){
                         foundMorph = true;
                         break;
