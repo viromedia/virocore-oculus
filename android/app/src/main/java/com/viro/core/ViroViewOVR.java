@@ -341,7 +341,21 @@ public class ViroViewOVR extends ViroView implements SurfaceHolder.Callback {
      */
     @Override
     public void dispose() {
+        if (mFrameListeners != null) {
+            mFrameListeners.clear();
+            mFrameListeners = null;
+        }
+
         super.dispose();
+
+        // VA: WE call mPlatformUtil.dispose() here instead of before super.dispose, since super.dispose
+        // leads to a crash if the mPlatformUtil renderQueue is null. Proper thing to do is to move this
+        // to end of ViroView.dispose() and ensure that doesn't crash any life cycle crashes. JIRA issue filed is
+        // VIRO-4537.
+
+        if (mPlatformUtil != null) {
+            mPlatformUtil.dispose();
+        }
     }
 
     /**
@@ -421,6 +435,10 @@ public class ViroViewOVR extends ViroView implements SurfaceHolder.Callback {
      * @hide
      */
     void onDrawFrame() {
+        if (mFrameListeners == null) {
+            return;
+        }
+
         for (FrameListener listener : mFrameListeners) {
             listener.onDrawFrame();
         }
