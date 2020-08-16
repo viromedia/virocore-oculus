@@ -24,6 +24,7 @@ With this option, you can simply get up and running quickly with a skeletal hell
 2. Go to the code-sample directory to access the HelloWorld code sample, and open the root directory in Android studio. 
 3. Build and deploy.
 4. You should now be in the application! Enjoy!
+
 (If using this option, you will have to rebuild the renderer whenever making rendering changes!)
 
 ### Option 2: Running Render Activity instructions
@@ -32,6 +33,7 @@ With this option, you can actually re-compile the renderer itself and run an And
 2. Go to the /android directory from within the project's root dir. Open this directory in Android Studio.
 3. Ensure that you are building to "rendertest". 
 4. Target your device and build. This should target [this activity](https://github.com/dthian/virocore-oculus/blob/master/android/renderertest/src/main/java/com/viromedia/renderertest/ViroActivity.java).
+
 (If using this option, you Do Not have to rebuild the renderer whenever making rendering changes!)
 
 ## Manual Re-Building of the Renderer
