@@ -12,7 +12,7 @@ The repository contains both the rendering source code, and as well as the ViroC
 To report bugs/issues related to Viro-Oculus, please file new issues on this repository.
 
 ### Releases
-Built releases can be seen under the [build foler](https://github.com/dthian/virocore-oculus/tree/master/build).
+Built releases can be seen under the [build folder](https://github.com/dthian/virocore-oculus/tree/master/build).
 
 ## Quick Start
 ### Running sample code instructions:
