@@ -1,0 +1,4 @@
+# ninja log v5
+0	65	0	CMakeFiles/viro_arcore.dir/src/main/cpp/arcore/VRORendererARCoreNative_JNI.cpp.o	d9010f51cdaf4082
+0	337	0	CMakeFiles/viro_arcore.dir/src/main/cpp/arcore/ARCore_Native.cpp.o	634d850a12f5d710
+337	495	0	../../../../build/intermediates/cmake/release/obj/arm64-v8a/libviro_arcore.so	157ebf314055d1d3

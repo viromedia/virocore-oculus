@@ -7,7 +7,7 @@
     },
     {
       "level": "INFO",
-      "message": "ndk.dir in local.properties is /Users/danielthian/Library/Android/sdk/ndk/20.1.5948944"
+      "message": "ndk.dir in local.properties is not set"
     },
     {
       "level": "INFO",
@@ -16,10 +16,6 @@
     {
       "level": "INFO",
       "message": "sdkFolder is /Users/danielthian/Library/Android/sdk"
-    },
-    {
-      "level": "INFO",
-      "message": "Considering /Users/danielthian/Library/Android/sdk/ndk/20.1.5948944 by ndk.dir"
     },
     {
       "level": "INFO",
@@ -35,7 +31,7 @@
     },
     {
       "level": "INFO",
-      "message": "Found requested ndk.dir (/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944) which has version 20.1.5948944"
+      "message": "No user requested version, choosing /Users/danielthian/Library/Android/sdk/ndk/20.1.5948944 which is version 20.1.5948944"
     }
   ]
 }
