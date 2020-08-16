@@ -16,15 +16,23 @@ Built releases can be seen under the [build folder](https://github.com/dthian/vi
 To actually re-build the renderer yourself, look at the Manual building steps shown below.
 
 ## Quick Start
-### Running sample code instructions:
-You can get up and running with the latest stable release of ViroCore! To do so, simply:
-1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
-2. Go to the code-sample directory for a list of current samples.
-3. Choose the code sample you wish to deploy, and open the root directory in Android studio. 
-4. Build and deploy.
-5. You should now be in the application! Enjoy!
+There's 2 ways to get started with ViroCore.
 
-## Manual Building of the Renderer
+### Option 1: Running sample code instructions
+With this option, you can simply get up and running quickly with a skeletal hello world demo.
+1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
+2. Go to the code-sample directory to access the HelloWorld code sample, and open the root directory in Android studio. 
+3. Build and deploy.
+4. You should now be in the application! Enjoy!
+
+### Option 2: Running Render Activity instructions
+With this option, you can actually re-compile the renderer itself and run an Android activity that manually tests certain 3D components.
+1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
+2. Go to the /android directory from within the project's root dir. Open this directory in Android Studio.
+3. Ensure that you are building to "rendertest". 
+4. Target your device and build. This should target [this activity](https://github.com/dthian/virocore-oculus/blob/master/android/renderertest/src/main/java/com/viromedia/renderertest/ViroActivity.java).
+
+## Manual Re-Building of the Renderer
 If you would like to modify / make changes to the renderer directly. These are the instructions for building the renderer and ViroCore platform. 
 
 ### Building the renderer to be used in react-viro platform:
