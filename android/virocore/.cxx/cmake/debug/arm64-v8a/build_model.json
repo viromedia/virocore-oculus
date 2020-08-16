@@ -1,0 +1,72 @@
+{
+  "variant": {
+    "module": {
+      "rootBuildGradleFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android",
+      "sdkFolder": "/Users/danielthian/Library/Android/sdk",
+      "isNativeCompilerSettingsCacheEnabled": false,
+      "isBuildOnlyTargetAbiEnabled": true,
+      "splitsAbiFilterSet": [],
+      "intermediatesFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/build/intermediates",
+      "gradleModulePathName": ":virocore",
+      "moduleRootFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore",
+      "makeFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/CMakeLists.txt",
+      "buildSystem": "CMAKE",
+      "compilerSettingsCacheFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/.cxx",
+      "cxxFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx",
+      "ndkFolder": "/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944",
+      "ndkVersion": "20.1.5948944",
+      "ndkSupportedAbiList": [
+        "ARMEABI_V7A",
+        "ARM64_V8A",
+        "X86",
+        "X86_64"
+      ],
+      "ndkDefaultAbiList": [
+        "ARMEABI_V7A",
+        "ARM64_V8A",
+        "X86",
+        "X86_64"
+      ],
+      "cmakeToolchainFile": "."
+    },
+    "buildSystemArgumentList": [],
+    "cFlagList": [],
+    "cppFlagsList": [
+      "-std\u003dc++14 -frtti -fexceptions"
+    ],
+    "variantName": "debug",
+    "soFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/build/intermediates/cmake/debug/lib",
+    "objFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/build/intermediates/cmake/debug/obj",
+    "jsonFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug",
+    "gradleBuildOutputFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug",
+    "isDebuggableEnabled": true,
+    "validAbiList": [
+      "ARMEABI_V7A",
+      "ARM64_V8A"
+    ],
+    "buildTargetSet": [
+      "viro_renderer"
+    ]
+  },
+  "abi": "ARM64_V8A",
+  "abiPlatformVersion": 21,
+  "cxxBuildFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a",
+  "jsonFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/android_gradle_build.json",
+  "gradleBuildOutputFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a",
+  "objFolder": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/build/intermediates/cmake/debug/obj/arm64-v8a",
+  "buildCommandFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/build_command.txt",
+  "buildOutputFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/build_output.txt",
+  "modelOutputFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/build_model.json",
+  "cmake": {
+    "cmakeListsWrapperFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/CMakeLists.txt",
+    "toolchainWrapperFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/android_gradle_build.toolchain.cmake",
+    "buildGenerationStateFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/build_generation_state.json",
+    "cacheKeyFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/compiler_cache_key.json",
+    "compilerCacheUseFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/compiler_cache_use.json",
+    "compilerCacheWriteFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/compiler_cache_write.json",
+    "toolchainSettingsFromCacheFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cxx/debug/arm64-v8a/compiler_settings_cache.cmake",
+    "cmakeWrappingBaseFolder": "."
+  },
+  "jsonGenerationLoggingRecordFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/json_generation_record.json",
+  "compileCommandsJsonFile": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/virocore/.cxx/cmake/debug/arm64-v8a/compile_commands.json"
+}

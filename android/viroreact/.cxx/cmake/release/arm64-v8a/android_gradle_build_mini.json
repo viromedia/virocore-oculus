@@ -1,0 +1,67 @@
+{
+  "buildFiles": [
+    "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/CMakeLists.txt"
+  ],
+  "cleanCommands": [
+    "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroreact/.cxx/cmake/release/arm64-v8a --target clean"
+  ],
+  "libraries": {
+    "lib-gvr-audio-Release-arm64-v8a": {
+      "artifactName": "lib-gvr-audio",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libgvr_audio.so"
+    },
+    "lib-BulletSoftBody-Release-arm64-v8a": {
+      "artifactName": "lib-BulletSoftBody",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libBulletSoftBody.so"
+    },
+    "viro_renderer-Release-arm64-v8a": {
+      "artifactName": "viro_renderer",
+      "buildCommand": "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroreact/.cxx/cmake/release/arm64-v8a --target viro_renderer",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroreact/build/intermediates/cmake/release/obj/arm64-v8a/libviro_renderer.so"
+    },
+    "lib-BulletDynamics-Release-arm64-v8a": {
+      "artifactName": "lib-BulletDynamics",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libBulletDynamics.so"
+    },
+    "lib-protobuf-Release-arm64-v8a": {
+      "artifactName": "lib-protobuf",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libprotobuf-lite.a"
+    },
+    "lib-BulletCollision-Release-arm64-v8a": {
+      "artifactName": "lib-BulletCollision",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libBulletCollision.so"
+    },
+    "lib-LinearMath-Release-arm64-v8a": {
+      "artifactName": "lib-LinearMath",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libLinearMath.so"
+    },
+    "lib-freetype-Release-arm64-v8a": {
+      "artifactName": "lib-freetype",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libfreetyped.so"
+    },
+    "cpufeatures-Release-arm64-v8a": {
+      "artifactName": "cpufeatures",
+      "buildCommand": "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroreact/.cxx/cmake/release/arm64-v8a --target cpufeatures",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroreact/.cxx/cmake/release/arm64-v8a/libcpufeatures.a"
+    },
+    "lib-gvr-Release-arm64-v8a": {
+      "artifactName": "lib-gvr",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libgvr.so"
+    },
+    "lib-ovr-Release-arm64-v8a": {
+      "artifactName": "lib-ovr",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/app/../app/src/main/jniLibs/arm64-v8a/libvrapi.so"
+    }
+  }
+}

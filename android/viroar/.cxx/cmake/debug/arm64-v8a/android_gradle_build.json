@@ -1,0 +1,55 @@
+
+{
+	"buildFiles" : 
+	[
+		"/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/CMakeLists.txt"
+	],
+	"cleanCommands" : 
+	[
+		"/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a --target clean"
+	],
+	"cppFileExtensions" : [ "cpp" ],
+	"libraries" : 
+	{
+		"lib-arcore-Debug-arm64-v8a" : 
+		{
+			"abi" : "arm64-v8a",
+			"artifactName" : "lib-arcore",
+			"buildType" : "debug",
+			"output" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/src/main/jniLibs/arm64-v8a/libarcore_sdk_c.so",
+			"toolchain" : "759581344310891751"
+		},
+		"viro_arcore-Debug-arm64-v8a" : 
+		{
+			"abi" : "arm64-v8a",
+			"artifactName" : "viro_arcore",
+			"buildCommand" : "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a --target viro_arcore",
+			"buildType" : "debug",
+			"files" : 
+			[
+				
+				{
+					"flags" : "  --target=aarch64-none-linux-android24 --gcc-toolchain=/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64 --sysroot=/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64/sysroot  -Dviro_arcore_EXPORTS -I../../../../../../ViroRenderer -I../../../../../app/src/main/cpp/arcore -I../../../../../libs/arcore/include  -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -Wformat -Werror=format-security  -std=c++14 -frtti -fcxx-exceptions -O0 -fno-limit-debug-info -fno-experimental-isel  -fPIC    -c ",
+					"src" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/src/main/cpp/arcore/ARCore_Native.cpp",
+					"workingDirectory" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a"
+				},
+				
+				{
+					"flags" : "  --target=aarch64-none-linux-android24 --gcc-toolchain=/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64 --sysroot=/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64/sysroot  -Dviro_arcore_EXPORTS -I../../../../../../ViroRenderer -I../../../../../app/src/main/cpp/arcore -I../../../../../libs/arcore/include  -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -Wformat -Werror=format-security  -std=c++14 -frtti -fcxx-exceptions -O0 -fno-limit-debug-info -fno-experimental-isel  -fPIC    -c ",
+					"src" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/src/main/cpp/arcore/VRORendererARCoreNative_JNI.cpp",
+					"workingDirectory" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a"
+				}
+			],
+			"output" : "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/build/intermediates/cmake/debug/obj/arm64-v8a/libviro_arcore.so",
+			"toolchain" : "759581344310891751"
+		}
+	},
+	"toolchains" : 
+	{
+		"759581344310891751" : 
+		{
+			"cCompilerExecutable" : "/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang",
+			"cppCompilerExecutable" : "/Users/danielthian/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++"
+		}
+	}
+}

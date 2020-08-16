@@ -1,0 +1,21 @@
+{
+  "buildFiles": [
+    "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/CMakeLists.txt"
+  ],
+  "cleanCommands": [
+    "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/release/armeabi-v7a --target clean"
+  ],
+  "libraries": {
+    "viro_arcore-Release-armeabi-v7a": {
+      "artifactName": "viro_arcore",
+      "buildCommand": "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/release/armeabi-v7a --target viro_arcore",
+      "abi": "armeabi-v7a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/build/intermediates/cmake/release/obj/armeabi-v7a/libviro_arcore.so"
+    },
+    "lib-arcore-Release-armeabi-v7a": {
+      "artifactName": "lib-arcore",
+      "abi": "armeabi-v7a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/src/main/jniLibs/armeabi-v7a/libarcore_sdk_c.so"
+    }
+  }
+}

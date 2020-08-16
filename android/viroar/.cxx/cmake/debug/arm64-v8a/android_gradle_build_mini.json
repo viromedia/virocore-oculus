@@ -1,0 +1,21 @@
+{
+  "buildFiles": [
+    "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/CMakeLists.txt"
+  ],
+  "cleanCommands": [
+    "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a --target clean"
+  ],
+  "libraries": {
+    "lib-arcore-Debug-arm64-v8a": {
+      "artifactName": "lib-arcore",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/src/main/jniLibs/arm64-v8a/libarcore_sdk_c.so"
+    },
+    "viro_arcore-Debug-arm64-v8a": {
+      "artifactName": "viro_arcore",
+      "buildCommand": "/Users/danielthian/Library/Android/sdk/cmake/3.6.4111459/bin/cmake --build /Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/.cxx/cmake/debug/arm64-v8a --target viro_arcore",
+      "abi": "arm64-v8a",
+      "output": "/Users/danielthian/Desktop/FINAL/virocore-oculus/android/viroar/build/intermediates/cmake/debug/obj/arm64-v8a/libviro_arcore.so"
+    }
+  }
+}
