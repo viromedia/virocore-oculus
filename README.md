@@ -35,8 +35,9 @@ If you would like to modify / make changes to the renderer directly. These are t
    $ ./gradlew :virocore:assembleRelease
    ```
 4. If the above gradle build succeeded, verify you see a `virocore-*.aar` file (* for the version number) at `android/virocore/build/outputs/aar/virocore-*.aar`
-5. To run ViroCore tests, open the android project at `android/app` in Android Studio and run `releasetest` target on your android device.
-6. To use this updated / newly built `virocore-*.aar` in your own project copy the aar file to `viro_core/` in your project and modify your `viro_core/build.gradle` to point to the new file.
+5. To use this updated / newly built `virocore-*.aar` in your own project copy the aar file to `viro_core/` in your project and modify your `viro_core/build.gradle` to point to the new file.
+
+Note: ViroCore tests are *not* situable for running (As they were tailored for GVR / AR environemnt like testing).
 
 ### Building the renderer to be used in react-viro platform:
 1. Follow the same prerequisite directions above from our [Quick start guide](https://virocore.viromedia.com/docs/getting-started).
