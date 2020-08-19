@@ -20,7 +20,7 @@ There's 2 ways to get started with ViroCore.
 
 ### Option 1: Running sample code instructions
 With this option, you can simply get up and running quickly with a skeletal hello world demo.
-1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
+1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore-oculus.git`.
 2. Go to the code-sample directory to access the HelloWorld code sample, and open the root directory in Android studio. 
 3. Build and deploy.
 4. You should now be in the application! Enjoy!
@@ -29,7 +29,7 @@ With this option, you can simply get up and running quickly with a skeletal hell
 
 ### Option 2: Running Render Activity instructions
 With this option, you can actually re-compile the renderer itself and run an Android activity that manually tests certain 3D components.
-1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
+1. Clone the repo into your workspace with git: `git clone https://github.com/viromedia/virocore-oculus.git`.
 2. Go to the /android directory from within the project's root dir. Open this directory in Android Studio.
 3. Ensure that you are building to "rendertest". 
 4. Target your device and build. This should target [this activity](https://github.com/dthian/virocore-oculus/blob/master/android/renderertest/src/main/java/com/viromedia/renderertest/ViroActivity.java).
@@ -41,8 +41,8 @@ If you would like to modify / make changes to the renderer directly. These are t
 
 ### Building the renderer to be used in react-viro platform:
 1. Follow the same prerequisite directions above from our [Quick start guide](https://virocore.viromedia.com/docs/getting-started).
-2. Clone this repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
-3. Clone the react-viro repo (named viro) in the same workspace (same parent directory as virocore) with git: `https://github.com/viromedia/viro.git`
+2. Clone this repo into your workspace with git: `git clone https://github.com/viromedia/virocore-oculus.git`.
+3. Clone the react-viro repo (named viro) in the same workspace (same parent directory as virocore) with git: `https://github.com/viromedia/viroreact-oculus.git`
 4. Execute the following commands to build the ViroCore platform library
    ```
    $ cd android
@@ -54,7 +54,7 @@ Note that a copy of the built renderer is also seen under the [build folder](htt
 
 ### Building the ViroCore platform:
 1. Follow the same prerequisite directions above from our [Quick start guide](https://virocore.viromedia.com/docs/getting-started).
-2. Clone this repo into your workspace with git: `git clone https://github.com/viromedia/virocore.git`.
+2. Clone this repo into your workspace with git: `git clone https://github.com/viromedia/virocore-oculus.git`.
 3. Execute the following commands to build the ViroCore platform library
    ```
    $ cd android
