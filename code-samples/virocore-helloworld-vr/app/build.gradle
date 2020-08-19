@@ -22,11 +22,6 @@ android {
 
     productFlavors {
         flavorDimensions "vr_platform"
-        gvr {
-            resValue "string", "app_name", "ViroSample-GVR"
-            applicationIdSuffix ".gvr"
-            buildConfigField "String", "VIRO_PLATFORM", "\"GVR\""
-        }
         ovr {
             resValue "string", "app_name", "ViroSample-OVR"
             applicationIdSuffix ".ovr"
