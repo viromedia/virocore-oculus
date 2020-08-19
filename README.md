@@ -73,4 +73,6 @@ ViroCore Documentation: https://virocore.viromedia.com/
 
 API Reference(Java Docs): https://developer.viromedia.com/
 
+Oculus Android Configuration Docs: https://developer.oculus.com/documentation/native/android/mobile-native-manifest/?device=QUEST
+
 Check out our [blog](https://blog.viromedia.com/) for tutorials, news, and updates.
