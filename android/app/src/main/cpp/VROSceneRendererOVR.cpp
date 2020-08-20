@@ -123,8 +123,8 @@ typedef void(GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(
 static const int CPU_LEVEL = 2;
 static const int GPU_LEVEL = 3;
 static const int NUM_MULTI_SAMPLES = 4;
-const unsigned int ControllerRightId = 536870914;
-const unsigned int ControllerLeftId = 536870915;
+const uint32_t ControllerRightId = 536870914;
+const uint32_t ControllerLeftId = 536870915;
 /*
 ================================================================================
 
@@ -1023,6 +1023,8 @@ static void ovrApp_HandleInput(ovrApp* app, double predictedDisplayTime,
             snapShot.deviceID = ViroOculusInputEvent::ControllerRightId;
         } else if (ControllerLeftId == cap.DeviceID) {
             snapShot.deviceID = ViroOculusInputEvent::ControllerLeftId;
+        } else {
+            return;
         }
         snapShot.batteryPercentage = trackedRemoteState.BatteryPercentRemaining;
 
