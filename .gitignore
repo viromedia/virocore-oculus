@@ -26,6 +26,8 @@ android/app/local.properties
 android/renderertest/.idea/
 android/renderertest/gradle/
 android/renderertest/local.properties
+code-samples/virocore-helloworld-vr/.idea/
+code-samples/virocore-helloworld-vr/gradle/
 
 # [Android] ========================
 # Built application files
