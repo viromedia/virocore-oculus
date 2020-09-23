@@ -156,6 +156,8 @@ private:
     void initControllerModel(std::shared_ptr<VRONode> node, std::shared_ptr<VRODriver> driver, std::string modelSource) {
         setLightForNode(node);
 
+        node->setScale({0.7, 0.7, 0.7});
+
         // Create our controller model
         std::shared_ptr<VRONode> controllerNod2 = std::make_shared<VRONode>();
         controllerNod2->setScale({0.015, 0.015, 0.015});
