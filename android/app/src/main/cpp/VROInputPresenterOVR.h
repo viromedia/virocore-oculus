@@ -74,8 +74,8 @@ public:
         _rightControllerBaseNode->addChildNode(_rightControllerBaseNodeAttachment);
         getRootNode()->addChildNode(_LeftControllerBaseNode);
         getRootNode()->addChildNode(_rightControllerBaseNode);
-        initControllerModel(_LeftControllerBaseNode, driver, kTouchLeftModel);
-        initControllerModel(_rightControllerBaseNode, driver, kTouchRightModel);
+        initControllerModel(_LeftControllerBaseNode, driver, kTouchRightModel);
+        initControllerModel(_rightControllerBaseNode, driver, kTouchLeftModel);
         getRootNode()->setIgnoreEventHandling(true);
         getRootNode()->setSelectable(false);
     }
